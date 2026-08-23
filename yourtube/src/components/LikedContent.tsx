@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useUser } from "@/lib/AuthContext";
 import axiosInstance from "@/lib/axiosinstance";
+import mediaUrl from "@/lib/mediaUrl";
 
 export default function LikedVideosContent() {
   const [likedVideos, setLikedVideos] = useState<any[]>([]);
@@ -92,10 +93,19 @@ export default function LikedVideosContent() {
           <div key={item._id} className="flex gap-4 group">
             <Link href={`/watch/${item.videoid._id}`} className="flex-shrink-0">
               <div className="relative w-40 aspect-video bg-gray-100 rounded overflow-hidden">
-                <video
-                  src={`${process.env.BACKEND_URL}/${item.videoid?.filepath}`}
-                  className="object-cover group-hover:scale-105 transition-transform duration-200"
-                />
+                {item.videoid?.thumbnail ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={mediaUrl(item.videoid.thumbnail) ?? undefined}
+                    alt={item.videoid.videotitle}
+                    className="object-cover group-hover:scale-105 transition-transform duration-200"
+                  />
+                ) : (
+                  <video
+                    src={mediaUrl(item.videoid?.filepath) ?? undefined}
+                    className="object-cover group-hover:scale-105 transition-transform duration-200"
+                  />
+                )}
               </div>
             </Link>
 

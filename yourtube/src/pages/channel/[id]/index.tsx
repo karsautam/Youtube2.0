@@ -3,69 +3,112 @@ import Channeltabs from "@/components/Channeltabs";
 import ChannelVideos from "@/components/ChannelVideos";
 import VideoUploader from "@/components/VideoUploader";
 import { useUser } from "@/lib/AuthContext";
-import { notFound } from "next/navigation";
+import axiosInstance from "@/lib/axiosinstance";
 import { useRouter } from "next/router";
-import React from "react";
+import React, { useCallback, useEffect, useState } from "react";
 
 const index = () => {
   const router = useRouter();
   const { id } = router.query;
   const { user } = useUser();
-  // const user: any = {
-  //   id: "1",
-  //   name: "John Doe",
-  //   email: "john@example.com",
-  //   image: "https://github.com/shadcn.png?height=32&width=32",
-  // };
-  try {
-    let channel = user;
-   
-    const videos = [
-      {
-        _id: "1",
-        videotitle: "Amazing Nature Documentary",
-        filename: "nature-doc.mp4",
-        filetype: "video/mp4",
-        filepath: "/videos/nature-doc.mp4",
-        filesize: "500MB",
-        videochanel: "Nature Channel",
-        Like: 1250,
-        views: 45000,
-        uploader: "nature_lover",
-        createdAt: new Date().toISOString(),
-      },
-      {
-        _id: "2",
-        videotitle: "Cooking Tutorial: Perfect Pasta",
-        filename: "pasta-tutorial.mp4",
-        filetype: "video/mp4",
-        filepath: "/videos/pasta-tutorial.mp4",
-        filesize: "300MB",
-        videochanel: "Chef's Kitchen",
-        Like: 890,
-        views: 23000,
-        uploader: "chef_master",
-        createdAt: new Date(Date.now() - 86400000).toISOString(),
-      },
-    ];
-    return (
-      <div className="flex-1 min-h-screen bg-white">
-        <div className="max-w-full mx-auto">
-          <ChannelHeader channel={channel} user={user} />
-          <Channeltabs />
-          <div className="px-4 pb-8">
-            <VideoUploader channelId={id} channelName={channel?.channelname} />
-          </div>
-          <div className="px-4 pb-8">
-            <ChannelVideos videos={videos} />
-          </div>
+  const [channel, setChannel] = useState<any>(null);
+  const [videos, setVideos] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState("videos");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!id || typeof id !== "string") return;
+    axiosInstance
+      .get("/user/" + id)
+      .then((res) => setChannel(res.data))
+      .catch((err) => console.error("Failed to fetch channel:", err))
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  const fetchVideos = useCallback(() => {
+    if (!id) return;
+    axiosInstance
+      .get("/video/getall")
+      .then((res) =>
+        setVideos(
+          (res.data || []).filter(
+            (v: any) => v.videochanel === channel?.channelname
+          )
+        )
+      )
+      .catch((err) => console.error("Failed to fetch videos:", err));
+  }, [id, channel?.channelname]);
+
+  useEffect(() => {
+    fetchVideos();
+  }, [fetchVideos]);
+
+  if (loading) {
+    return <div className="flex-1 p-6 text-gray-500">Loading channel...</div>;
+  }
+
+  if (!channel) {
+    return <div className="flex-1 p-6 text-gray-500">Channel not found</div>;
+  }
+
+  const isOwner = user?._id && String(user._id) === String(id);
+  const tabs: Record<string, React.ReactNode> = {
+    home: (
+      <div className="text-center py-12 text-gray-500">
+        <p>Welcome to {channel.channelname}</p>
+        <p className="text-sm mt-1">
+          Check out the Videos tab for the latest uploads.
+        </p>
+      </div>
+    ),
+    videos: <ChannelVideos videos={videos} />,
+    shorts: (
+      <div className="text-center py-12 text-gray-600">No shorts yet.</div>
+    ),
+    playlists: (
+      <div className="text-center py-12 text-gray-600">No playlists yet.</div>
+    ),
+    community: (
+      <div className="text-center py-12 text-gray-600">No posts yet.</div>
+    ),
+    about: (
+      <div className="py-8 max-w-2xl">
+        <h2 className="text-lg font-semibold mb-2">About</h2>
+        <p className="text-gray-600">
+          {channel.description || `This is ${channel.channelname}'s channel.`}
+        </p>
+      </div>
+    ),
+  };
+
+  return (
+    <div className="flex-1 min-h-screen bg-white">
+      <div className="max-w-full mx-auto">
+        <ChannelHeader channel={channel} />
+        <Channeltabs activeTab={activeTab} onTabChange={setActiveTab} />
+        <div className="px-4 pb-8 pt-6">
+          {activeTab === "upload" ? (
+            isOwner ? (
+              <VideoUploader
+                channelId={typeof id === "string" ? id : undefined}
+                channelName={channel?.channelname}
+                onUploaded={() => {
+                  fetchVideos();
+                  setActiveTab("videos");
+                }}
+              />
+            ) : (
+              <div className="text-center py-12 text-gray-600">
+                Only the channel owner can upload videos.
+              </div>
+            )
+          ) : (
+            tabs[activeTab] ?? tabs.videos
+          )}
         </div>
       </div>
-    );
-  } catch (error) {
-    console.error("Error fetching channel data:", error);
-   
-  }
+    </div>
+  );
 };
 
 export default index;

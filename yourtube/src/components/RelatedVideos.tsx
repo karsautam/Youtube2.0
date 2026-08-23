@@ -9,8 +9,10 @@ interface RelatedVideosProps {
     videochanel: string;
     views: number;
     createdAt: string;
+    thumbnail?: string;
   }>;
 }
+import mediaUrl from "@/lib/mediaUrl";
 const vid = "/video/vdo.mp4";
 export default function RelatedVideos({ videos }: RelatedVideosProps) {
   return (
@@ -22,10 +24,19 @@ export default function RelatedVideos({ videos }: RelatedVideosProps) {
           className="flex gap-2 group"
         >
           <div className="relative w-40 aspect-video bg-gray-100 rounded overflow-hidden flex-shrink-0">
-            <video
-              src={vid}
-              className="object-cover group-hover:scale-105 transition-transform duration-200"
-            />
+            {video.thumbnail ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={mediaUrl(video.thumbnail) ?? undefined}
+                alt={video.videotitle}
+                className="object-cover group-hover:scale-105 transition-transform duration-200"
+              />
+            ) : (
+              <video
+                src={vid}
+                className="object-cover group-hover:scale-105 transition-transform duration-200"
+              />
+            )}
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="font-medium text-sm line-clamp-2 group-hover:text-blue-600">

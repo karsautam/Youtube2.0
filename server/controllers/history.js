@@ -5,7 +5,12 @@ export const handlehistory = async (req, res) => {
   const { userId } = req.body;
   const { videoId } = req.params;
   try {
-    await history.create({ viewer: userId, videoid: videoId });
+    // keep a single entry per video per user; refresh its timestamp instead
+    await history.findOneAndUpdate(
+      { viewer: userId, videoid: videoId },
+      { $set: { createdAt: new Date() } },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
     await video.findByIdAndUpdate(videoId, { $inc: { views: 1 } });
     return res.status(200).json({ history: true });
   } catch (error) {
@@ -27,12 +32,21 @@ export const getallhistoryVideo = async (req, res) => {
   try {
     const historyvideo = await history
       .find({ viewer: userId })
+      .sort({ createdAt: -1 })
       .populate({
         path: "videoid",
         model: "videofiles",
       })
       .exec();
-    return res.status(200).json(historyvideo);
+    // drop entries whose video was deleted (and clean them from the DB)
+    const valid = historyvideo.filter((h) => h.videoid);
+    const orphanIds = historyvideo
+      .filter((h) => !h.videoid)
+      .map((h) => h._id);
+    if (orphanIds.length) {
+      await history.deleteMany({ _id: { $in: orphanIds } });
+    }
+    return res.status(200).json(valid);
   } catch (error) {
     console.error(" error:", error);
     return res.status(500).json({ message: "Something went wrong" });

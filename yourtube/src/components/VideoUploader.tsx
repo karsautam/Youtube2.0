@@ -7,13 +7,35 @@ import { Label } from "./ui/label";
 import { Progress } from "./ui/progress";
 import axiosInstance from "@/lib/axiosinstance";
 
-const VideoUploader = ({ channelId, channelName }: any) => {
+const VideoUploader = ({
+  channelId,
+  channelName,
+  onUploaded,
+}: {
+  channelId?: string;
+  channelName?: string;
+  onUploaded?: () => void;
+}) => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoTitle, setVideoTitle] = useState("");
+  const [subtitleFiles, setSubtitleFiles] = useState<File[]>([]);
   const [uploadComplete, setUploadComplete] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const subtitleInputRef = useRef<HTMLInputElement>(null);
+  const handlesubtitlechange = (e: ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      const valid = Array.from(files).filter(
+        (f) => /\.(vtt|srt)$/i.test(f.name) || f.type === "text/vtt"
+      );
+      setSubtitleFiles((prev) => [...prev, ...valid]);
+    }
+    if (subtitleInputRef.current) {
+      subtitleInputRef.current.value = "";
+    }
+  };
   const handlefilechange = (e: ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
@@ -22,8 +44,8 @@ const VideoUploader = ({ channelId, channelName }: any) => {
         toast.error("Please upload a valid video file.");
         return;
       }
-      if (file.size > 100 * 1024 * 1024) {
-        toast.error("File size exceeds 100MB limit.");
+      if (file.size > 2 * 1024 * 1024 * 1024) {
+        toast.error("File size exceeds 2GB limit.");
         return;
       }
       setVideoFile(file);
@@ -36,11 +58,15 @@ const VideoUploader = ({ channelId, channelName }: any) => {
   const resetForm = () => {
     setVideoFile(null);
     setVideoTitle("");
+    setSubtitleFiles([]);
     setIsUploading(false);
     setUploadProgress(0);
     setUploadComplete(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
+    }
+    if (subtitleInputRef.current) {
+      subtitleInputRef.current.value = "";
     }
   };
   const cancelUpload = () => {
@@ -56,8 +82,9 @@ const VideoUploader = ({ channelId, channelName }: any) => {
     const formdata = new FormData();
     formdata.append("file", videoFile);
     formdata.append("videotitle", videoTitle);
-    formdata.append("videochanel", channelName);
-    formdata.append("uploader", channelId);
+    formdata.append("videochanel", channelName ?? "");
+    formdata.append("uploader", channelId ?? "");
+    subtitleFiles.forEach((f) => formdata.append("subtitles", f));
     console.log(formdata)
     try {
       setIsUploading(true);
@@ -75,6 +102,7 @@ const VideoUploader = ({ channelId, channelName }: any) => {
       });
       toast.success("Upload successfully");
       resetForm();
+      onUploaded?.();
     } catch (error) {
       console.error("Error uploading video:", error);
       toast.error("There was an error uploading your video. Please try again.");
@@ -100,7 +128,7 @@ const VideoUploader = ({ channelId, channelName }: any) => {
               or click to select files
             </p>
             <p className="text-xs text-gray-400 mt-4">
-              MP4, WebM, MOV or AVI • Up to 100MB
+              MP4, WebM, MOV or AVI • Up to 2GB
             </p>
             <input
               type="file"
@@ -145,6 +173,51 @@ const VideoUploader = ({ channelId, channelName }: any) => {
                   disabled={isUploading || uploadComplete}
                   className="mt-1"
                 />
+              </div>
+
+              <div>
+                <Label>Subtitles (optional)</Label>
+                <div className="mt-1 flex flex-wrap items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    type="button"
+                    onClick={() => subtitleInputRef.current?.click()}
+                    disabled={isUploading || uploadComplete}
+                  >
+                    Add subtitle file
+                  </Button>
+                  {subtitleFiles.map((f, i) => (
+                    <span
+                      key={`${f.name}-${i}`}
+                      className="flex items-center gap-1 rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-600"
+                    >
+                      {f.name}
+                      <button
+                        type="button"
+                        className="text-gray-400 hover:text-gray-700"
+                        onClick={() =>
+                          setSubtitleFiles((prev) =>
+                            prev.filter((_, j) => j !== i)
+                          )
+                        }
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  ))}
+                  <input
+                    type="file"
+                    ref={subtitleInputRef}
+                    className="hidden"
+                    accept=".vtt,.srt,text/vtt"
+                    multiple
+                    onChange={handlesubtitlechange}
+                  />
+                </div>
+                <p className="mt-1 text-xs text-gray-400">
+                  WebVTT (.vtt) or SubRip (.srt) files
+                </p>
               </div>
             </div>
 

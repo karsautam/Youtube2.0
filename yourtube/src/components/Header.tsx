@@ -1,4 +1,4 @@
-import { Bell, Menu, Mic, Search, User, VideoIcon } from "lucide-react";
+import { Bell, Menu, Mic, Search, User, Upload, VideoIcon } from "lucide-react";
 import React, { useState } from "react";
 import { Button } from "./ui/button";
 import Link from "next/link";
@@ -40,7 +40,11 @@ const Header = () => {
   return (
     <header className="flex items-center justify-between px-4 py-2 bg-white border-b">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="transition-all duration-200 hover:bg-gray-100 hover:shadow-sm hover:scale-110 active:bg-gray-200 active:scale-95 active:shadow-inner"
+        >
           <Menu className="w-6 h-6" />
         </Button>
         <Link href="/" className="flex items-center gap-1">
@@ -59,6 +63,7 @@ const Header = () => {
       >
         <div className="flex flex-1">
           <Input
+            id="global-search-input"
             type="search"
             placeholder="Search"
             value={searchQuery}
@@ -68,29 +73,56 @@ const Header = () => {
           />
           <Button
             type="submit"
-            className="rounded-r-full px-6 bg-gray-50 hover:bg-gray-100 text-gray-600 border border-l-0"
+            className="rounded-r-full px-6 bg-gray-50 text-gray-600 border border-l-0"
           >
             <Search className="w-5 h-5" />
           </Button>
         </div>
-        <Button variant="ghost" size="icon" className="rounded-full">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="rounded-full transition-all duration-200 hover:bg-gray-100 hover:shadow-sm hover:scale-110 active:bg-gray-200 active:scale-95 active:shadow-inner"
+        >
           <Mic className="w-5 h-5" />
         </Button>
       </form>
       <div className="flex items-center gap-2">
         {user ? (
           <>
-            <Button variant="ghost" size="icon">
-              <VideoIcon className="w-6 h-6" />
+            <Button
+              variant="ghost"
+              size="icon"
+              asChild
+              title="Upload video"
+              className="transition-all duration-200 hover:bg-gray-100 hover:shadow-sm hover:scale-110 active:bg-gray-200 active:scale-95 active:shadow-inner"
+            >
+              <Link href="/upload">
+                <Upload className="w-6 h-6" />
+              </Link>
             </Button>
-            <Button variant="ghost" size="icon">
+            <Button
+              variant="ghost"
+              size="icon"
+              asChild
+              title="Video meeting"
+              className="transition-all duration-200 hover:bg-gray-100 hover:shadow-sm hover:scale-110 active:bg-gray-200 active:scale-95 active:shadow-inner"
+            >
+              <Link href="/meeting">
+                <VideoIcon className="w-6 h-6" />
+              </Link>
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="transition-all duration-200 hover:bg-gray-100 hover:shadow-sm hover:scale-110 active:bg-gray-200 active:scale-95 active:shadow-inner"
+            >
               <Bell className="w-6 h-6" />
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
-                  className="relative h-8 w-8 rounded-full"
+                  className="relative h-8 w-8 rounded-full hover:bg-transparent!"
                 >
                   <Avatar className="h-8 w-8">
                     <AvatarImage src={user.image} />
@@ -100,7 +132,10 @@ const Header = () => {
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-56" align="end" forceMount>
                 {user?.channelname ? (
-                  <DropdownMenuItem asChild>
+                  <DropdownMenuItem
+                    asChild
+                    className="focus:bg-transparent! focus:text-inherit!"
+                  >
                     <Link href={`/channel/${user?._id}`}>Your channel</Link>
                   </DropdownMenuItem>
                 ) : (
@@ -116,6 +151,9 @@ const Header = () => {
                   </div>
                 )}
                 <DropdownMenuItem asChild>
+                  <Link href="/downloads">Downloads</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
                   <Link href="/history">History</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
@@ -125,7 +163,12 @@ const Header = () => {
                   <Link href="/watch-later">Watch later</Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={logout}>Sign out</DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={logout}
+                  className="focus:bg-transparent! focus:text-inherit!"
+                >
+                  Sign out
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </>

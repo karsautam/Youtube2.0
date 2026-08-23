@@ -1,6 +1,21 @@
 import mongoose from "mongoose";
 import users from "../Modals/Auth.js";
 
+export const getUserById = async (req, res) => {
+  const { id } = req.params;
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ message: "Invalid user ID" });
+  }
+  try {
+    const found = await users.findById(id).select("-__v");
+    if (!found) return res.status(404).json({ message: "User not found" });
+    return res.status(200).json(found);
+  } catch (error) {
+    console.error("getUserById error:", error);
+    return res.status(500).json({ message: "Something went wrong" });
+  }
+};
+
 export const login = async (req, res) => {
   const { email, name, image } = req.body;
 
