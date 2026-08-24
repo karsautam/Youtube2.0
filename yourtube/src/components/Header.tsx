@@ -1,4 +1,13 @@
-import { Bell, Menu, Mic, Search, User, Upload, VideoIcon } from "lucide-react";
+﻿import {
+  ArrowLeft,
+  Bell,
+  Menu,
+  Mic,
+  Search,
+  User,
+  Upload,
+  VideoIcon,
+} from "lucide-react";
 import React, { useState } from "react";
 import { Button } from "./ui/button";
 import Link from "next/link";
@@ -15,16 +24,11 @@ import Channeldialogue from "./channeldialogue";
 import { useRouter } from "next/router";
 import { useUser } from "@/lib/AuthContext";
 
-const Header = () => {
+const Header = ({ onMenuToggle }: { onMenuToggle?: () => void }) => {
   const { user, logout, handlegooglesignin } = useUser();
-  // const user: any = {
-  //   id: "1",
-  //   name: "John Doe",
-  //   email: "john@example.com",
-  //   image: "https://github.com/shadcn.png?height=32&width=32",
-  // };
   const [searchQuery, setSearchQuery] = useState("");
   const [isdialogeopen, setisdialogeopen] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const router = useRouter();
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,87 +42,128 @@ const Header = () => {
     }
   };
   return (
-    <header className="flex items-center justify-between px-4 py-2 bg-white border-b">
-      <div className="flex items-center gap-4">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="transition-all duration-200 hover:bg-gray-100 hover:shadow-sm hover:scale-110 active:bg-gray-200 active:scale-95 active:shadow-inner"
+    <header className="sticky top-0 z-40 flex items-center px-2 py-2 bg-background border-b sm:px-4">
+      {mobileSearchOpen ? (
+        <form
+          onSubmit={handleSearch}
+          className="flex w-full items-center gap-1 md:hidden"
         >
-          <Menu className="w-6 h-6" />
-        </Button>
-        <Link href="/" className="flex items-center gap-1">
-          <div className="bg-red-600 p-1 rounded">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
-              <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
-            </svg>
-          </div>
-          <span className="text-xl font-medium">YourTube</span>
-          <span className="text-xs text-gray-400 ml-1">IN</span>
-        </Link>
-      </div>
-      <form
-        onSubmit={handleSearch}
-        className="flex items-center gap-2 flex-1 max-w-2xl mx-4"
-      >
-        <div className="flex flex-1">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label="Close search"
+            onClick={() => setMobileSearchOpen(false)}
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
           <Input
-            id="global-search-input"
+            autoFocus
             type="search"
             placeholder="Search"
             value={searchQuery}
-            onKeyPress={handleKeypress}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="rounded-l-full border-r-0 focus-visible:ring-0"
+            className="flex-1 rounded-full focus-visible:ring-0"
           />
-          <Button
-            type="submit"
-            className="rounded-r-full px-6 bg-gray-50 text-gray-600 border border-l-0"
-          >
+          <Button type="submit" variant="ghost" size="icon" aria-label="Search">
             <Search className="w-5 h-5" />
           </Button>
-        </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="rounded-full transition-all duration-200 hover:bg-gray-100 hover:shadow-sm hover:scale-110 active:bg-gray-200 active:scale-95 active:shadow-inner"
-        >
-          <Mic className="w-5 h-5" />
-        </Button>
-      </form>
-      <div className="flex items-center gap-2">
-        {user ? (
-          <>
+        </form>
+      ) : (
+        <div className="flex w-full items-center gap-2 sm:gap-4">
+          <div className="flex shrink-0 items-center gap-1 sm:gap-4">
             <Button
               variant="ghost"
               size="icon"
-              asChild
-              title="Upload video"
-              className="transition-all duration-200 hover:bg-gray-100 hover:shadow-sm hover:scale-110 active:bg-gray-200 active:scale-95 active:shadow-inner"
+              aria-label="Toggle menu"
+              onClick={onMenuToggle}
+              className="transition-all duration-200 hover:bg-accent hover:shadow-sm hover:scale-110 active:bg-accent active:scale-95 active:shadow-inner"
             >
-              <Link href="/upload">
-                <Upload className="w-6 h-6" />
-              </Link>
+              <Menu className="w-6 h-6" />
             </Button>
+            <Link href="/" className="flex items-center gap-1">
+              <div className="bg-red-600 p-1 rounded">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+                  <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+                </svg>
+              </div>
+              <span className="text-lg font-medium sm:text-xl">YourTube</span>
+              <span className="hidden text-xs text-muted-foreground ml-1 sm:inline">
+                IN
+              </span>
+            </Link>
+          </div>
+          <form
+            onSubmit={handleSearch}
+            className="hidden flex-1 items-center gap-2 max-w-2xl mx-4 md:flex"
+          >
+            <div className="flex flex-1">
+              <Input
+                id="global-search-input"
+                type="search"
+                placeholder="Search"
+                value={searchQuery}
+                onKeyPress={handleKeypress}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="rounded-l-full border-r-0 focus-visible:ring-0"
+              />
+              <Button
+                type="submit"
+                className="rounded-r-full px-6 bg-muted text-muted-foreground border border-l-0"
+              >
+                <Search className="w-5 h-5" />
+              </Button>
+            </div>
             <Button
               variant="ghost"
               size="icon"
-              asChild
-              title="Video meeting"
-              className="transition-all duration-200 hover:bg-gray-100 hover:shadow-sm hover:scale-110 active:bg-gray-200 active:scale-95 active:shadow-inner"
+              className="rounded-full transition-all duration-200 hover:bg-accent hover:shadow-sm hover:scale-110 active:bg-accent active:scale-95 active:shadow-inner"
             >
-              <Link href="/meeting">
-                <VideoIcon className="w-6 h-6" />
-              </Link>
+              <Mic className="w-5 h-5" />
             </Button>
+          </form>
+          <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-2">
             <Button
               variant="ghost"
               size="icon"
-              className="transition-all duration-200 hover:bg-gray-100 hover:shadow-sm hover:scale-110 active:bg-gray-200 active:scale-95 active:shadow-inner"
+              aria-label="Search"
+              onClick={() => setMobileSearchOpen(true)}
+              className="md:hidden"
             >
-              <Bell className="w-6 h-6" />
+              <Search className="w-5 h-5" />
             </Button>
-            <DropdownMenu>
+            {user ? (
+              <>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  asChild
+                  title="Upload video"
+                  className="transition-all duration-200 hover:bg-accent hover:shadow-sm hover:scale-110 active:bg-accent active:scale-95 active:shadow-inner"
+                >
+                  <Link href="/upload">
+                    <Upload className="w-5 h-5 sm:w-6 sm:h-6" />
+                  </Link>
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  asChild
+                  title="Video meeting"
+                  className="hidden transition-all duration-200 hover:bg-accent hover:shadow-sm hover:scale-110 active:bg-accent active:scale-95 active:shadow-inner sm:inline-flex"
+                >
+                  <Link href="/meeting">
+                    <VideoIcon className="w-6 h-6" />
+                  </Link>
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="hidden transition-all duration-200 hover:bg-accent hover:shadow-sm hover:scale-110 active:bg-accent active:scale-95 active:shadow-inner sm:inline-flex"
+                >
+                  <Bell className="w-6 h-6" />
+                </Button>
+                <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
@@ -183,7 +228,9 @@ const Header = () => {
             </Button>
           </>
         )}{" "}
-      </div>
+          </div>
+        </div>
+      )}
       <Channeldialogue
         isopen={isdialogeopen}
         onclose={() => setisdialogeopen(false)}

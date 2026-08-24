@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+﻿import { useRef, useState } from "react";
 import { FileUp, Paperclip, Send, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,8 +16,8 @@ type Props = {
 };
 
 const EMOJIS = [
-  "😀", "😂", "😅", "😍", "🤔", "👍", "👏", "🙌", "🎉", "❤️",
-  "🔥", "💯", "😮", "😢", "😎", "🤝",
+  "ðŸ˜€", "ðŸ˜‚", "ðŸ˜…", "ðŸ˜", "ðŸ¤”", "ðŸ‘", "ðŸ‘", "ðŸ™Œ", "ðŸŽ‰", "â¤ï¸",
+  "ðŸ”¥", "ðŸ’¯", "ðŸ˜®", "ðŸ˜¢", "ðŸ˜Ž", "ðŸ¤",
 ];
 
 export default function ChatPanel({
@@ -57,10 +57,10 @@ export default function ChatPanel({
   };
 
   return (
-    <aside className="flex h-full w-80 flex-col border-l border-white/10 bg-slate-900 text-white">
+    <aside className="flex h-full w-80 max-w-[85vw] flex-col border-l border-white/10 bg-slate-900 text-white">
       <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
         <h2 className="font-semibold">In-call chat</h2>
-        <Button variant="ghost" size="icon" onClick={onClose} className="text-white hover:bg-white/10">
+        <Button variant="ghost" size="icon" onClick={onClose} className="text-white hover:bg-background/10">
           <X className="h-5 w-5" />
         </Button>
       </div>
@@ -112,7 +112,7 @@ export default function ChatPanel({
               key={e}
               disabled={!canChat}
               onClick={() => setText((t) => t + e)}
-              className="rounded p-0.5 text-lg transition hover:bg-white/10 disabled:opacity-40"
+              className="rounded p-0.5 text-lg transition hover:bg-background/10 disabled:opacity-40"
             >
               {e}
             </button>
@@ -123,7 +123,7 @@ export default function ChatPanel({
             variant="ghost"
             size="icon"
             disabled={!canChat || sending}
-            className="h-9 w-9 text-white hover:bg-white/10"
+            className="h-9 w-9 text-white hover:bg-background/10"
             title="Attach file"
             onClick={() => fileRef.current?.click()}
           >
@@ -146,7 +146,7 @@ export default function ChatPanel({
               }
             }}
             placeholder="Type a message"
-            className="h-9 flex-1 bg-white/10 text-white placeholder:text-slate-400 focus-visible:ring-blue-500"
+            className="h-9 flex-1 bg-background/10 text-white placeholder:text-slate-400 focus-visible:ring-blue-500"
           />
           <Button
             size="icon"
@@ -192,7 +192,7 @@ function FileBubble({ message }: { message: ChatMessage }) {
   const isAudio = message.fileType?.startsWith("audio/");
   const isVideo = message.fileType?.startsWith("video/");
   return (
-    <div className="mt-1 rounded-lg border border-white/10 bg-white/5 p-2">
+    <div className="mt-1 rounded-lg border border-white/10 bg-background/5 p-2">
       {isImage && (
         <a href={message.url} target="_blank" rel="noreferrer">
           {/* eslint-disable-next-line @next/next/no-img-element */}

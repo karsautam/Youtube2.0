@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+﻿import React, { useEffect, useState } from "react";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { Button } from "./ui/button";
 import {
@@ -35,6 +35,7 @@ const VideoInfo = ({ video }: any) => {
   const [subscriberCount, setSubscriberCount] = useState(0);
   const [isDownloaded, setIsDownloaded] = useState(false);
   const [userPlan, setUserPlan] = useState("free");
+  const [moreOpen, setMoreOpen] = useState(false);
 
   const PLAN_RANK: Record<string, number> = {
     free: 0,
@@ -220,7 +221,7 @@ const VideoInfo = ({ video }: any) => {
       setIsDownloaded(true);
       toast.success(
         res.data.duplicate
-          ? "You downloaded this recently — resuming file"
+          ? "You downloaded this recently â€” resuming file"
           : "Download started"
       );
       window.open(
@@ -259,16 +260,20 @@ const VideoInfo = ({ video }: any) => {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-semibold">{video.videotitle}</h1>
+      <h1 className="text-base font-semibold leading-snug sm:text-xl">
+        {video.videotitle}
+      </h1>
 
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Avatar className="w-10 h-10">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-3">
+          <Avatar className="w-10 h-10 shrink-0">
             <AvatarFallback>{video.videochanel?.[0]}</AvatarFallback>
           </Avatar>
-          <div>
-            <h3 className="font-medium">{video.videochanel}</h3>
-            <p className="text-sm text-gray-600">
+          <div className="min-w-0 flex-1">
+            <h3 className="truncate font-medium text-sm sm:text-base">
+              {video.videochanel}
+            </h3>
+            <p className="truncate text-xs text-muted-foreground sm:text-sm">
               {formatCount(subscriberCount)} subscribers
             </p>
           </div>
@@ -276,41 +281,41 @@ const VideoInfo = ({ video }: any) => {
             <Button
               onClick={handleSubscribe}
               variant={isSubscribed ? "outline" : "default"}
-              className={`ml-4 ${
+              className={`ml-2 h-8 shrink-0 rounded-full px-3 text-xs sm:ml-4 sm:h-9 sm:px-4 sm:text-sm ${
                 isSubscribed
-                  ? "bg-gray-100 hover:bg-gray-200"
+                  ? "bg-muted hover:bg-accent"
                   : "bg-red-600 hover:bg-red-700"
               }`}
             >
-              {isSubscribed ? "✓ Subscribed" : "Subscribe"}
+              {isSubscribed ? "âœ“ Subscribed" : "Subscribe"}
             </Button>
           )}
         </div>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center bg-gray-100 rounded-full">
+        <div className="scrollbar-none -mx-4 flex min-w-0 items-center gap-2 overflow-x-auto px-4">
+          <div className="flex shrink-0 items-center bg-muted rounded-full">
             <Button
               variant="ghost"
               size="sm"
-              className="rounded-l-full"
+              className="rounded-l-full px-2.5 sm:px-3"
               onClick={handleLike}
             >
               <ThumbsUp
-                className={`w-5 h-5 mr-2 ${
-                  isLiked ? "fill-black text-black" : ""
+                className={`w-4 h-4 mr-1.5 sm:w-5 sm:h-5 ${
+                  isLiked ? "fill-foreground text-foreground" : ""
                 }`}
               />
               {likes.toLocaleString()}
             </Button>
-            <div className="w-px h-6 bg-gray-300" />
+            <div className="w-px h-6 bg-muted-foreground/30" />
             <Button
               variant="ghost"
               size="sm"
-              className="rounded-r-full"
+              className="rounded-r-full px-2.5 sm:px-3"
               onClick={handleDislike}
             >
               <ThumbsDown
-                className={`w-5 h-5 mr-2 ${
-                  isDisliked ? "fill-black text-black" : ""
+                className={`w-4 h-4 mr-1.5 sm:w-5 sm:h-5 ${
+                  isDisliked ? "fill-foreground text-foreground" : ""
                 }`}
               />
               {dislikes.toLocaleString()}
@@ -319,21 +324,10 @@ const VideoInfo = ({ video }: any) => {
           <Button
             variant="ghost"
             size="sm"
-            className={`bg-gray-100 rounded-full ${
-              isWatchLater ? "text-primary" : ""
-            }`}
-            onClick={handleWatchLater}
-          >
-            <Clock className="w-5 h-5 mr-2" />
-            {isWatchLater ? "Saved" : "Watch Later"}
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="bg-gray-100 rounded-full"
+            className="shrink-0 bg-muted rounded-full px-2.5 sm:px-3"
             onClick={handleShare}
           >
-            <Share className="w-5 h-5 mr-2" />
+            <Share className="w-4 h-4 mr-1.5 sm:w-5 sm:h-5" />
             Share
           </Button>
           {isDownloaded ? (
@@ -342,9 +336,9 @@ const VideoInfo = ({ video }: any) => {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="bg-gray-100 rounded-full text-green-700"
+                  className="shrink-0 bg-muted rounded-full px-2.5 text-green-700 sm:px-3"
                 >
-                  <CheckCircle className="w-5 h-5 mr-2 fill-green-100" />
+                  <CheckCircle className="w-4 h-4 mr-1.5 fill-green-100 sm:w-5 sm:h-5" />
                   Downloaded
                 </Button>
               </DropdownMenuTrigger>
@@ -364,9 +358,9 @@ const VideoInfo = ({ video }: any) => {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="bg-gray-100 rounded-full"
+                  className="shrink-0 bg-muted rounded-full px-2.5 sm:px-3"
                 >
-                  <Download className="w-5 h-5 mr-2" />
+                  <Download className="w-4 h-4 mr-1.5 sm:w-5 sm:h-5" />
                   Download
                 </Button>
               </DropdownMenuTrigger>
@@ -390,7 +384,7 @@ const VideoInfo = ({ video }: any) => {
                     >
                       <span className="flex-1">{q.label}</span>
                       {locked && (
-                        <span className="flex items-center gap-1 text-xs text-gray-500 ml-3">
+                        <span className="flex items-center gap-1 text-xs text-muted-foreground ml-3">
                           <Lock className="w-3 h-3" />
                           {TIER_NAME[needed]}
                         </span>
@@ -403,14 +397,27 @@ const VideoInfo = ({ video }: any) => {
           )}
           <Button
             variant="ghost"
+            size="sm"
+            className={`shrink-0 bg-muted rounded-full px-2.5 sm:px-3 ${
+              isWatchLater ? "text-primary" : ""
+            }`}
+            onClick={handleWatchLater}
+          >
+            <Clock className="w-4 h-4 mr-1.5 sm:w-5 sm:h-5" />
+            {isWatchLater ? "Saved" : "Watch Later"}
+          </Button>
+          <Button
+            variant="ghost"
             size="icon"
-            className="bg-gray-100 rounded-full"
+            aria-label="More options"
+            onClick={() => setMoreOpen(true)}
+            className="shrink-0 bg-muted rounded-full"
           >
             <MoreHorizontal className="w-5 h-5" />
           </Button>
         </div>
       </div>
-      <div className="bg-gray-100 rounded-lg p-4">
+      <div className="bg-muted rounded-lg p-4">
         <div className="flex gap-4 text-sm font-medium mb-2">
           <span>{video.views.toLocaleString()} views</span>
           <span>{formatDistanceToNow(new Date(video.createdAt))} ago</span>
@@ -430,6 +437,62 @@ const VideoInfo = ({ video }: any) => {
           {showFullDescription ? "Show less" : "Show more"}
         </Button>
       </div>
+
+      {moreOpen && (
+        <>
+          <div
+            className="fixed inset-0 z-50 bg-black/50 animate-in fade-in duration-200"
+            onClick={() => setMoreOpen(false)}
+            aria-hidden="true"
+          />
+          <div className="fixed inset-x-0 bottom-0 z-50 rounded-t-2xl bg-background p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-2xl animate-in slide-in-from-bottom duration-200 sm:inset-x-auto sm:bottom-4 sm:right-4 sm:w-72 sm:rounded-xl">
+            <div className="mx-auto mb-1 h-1 w-10 rounded-full bg-muted-foreground/30 sm:hidden" />
+            <button
+              type="button"
+              className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors hover:bg-accent active:bg-accent"
+              onClick={() => {
+                setMoreOpen(false);
+                handleShare();
+              }}
+            >
+              <Share className="w-5 h-5 text-muted-foreground" />
+              Copy link
+            </button>
+            <button
+              type="button"
+              className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors hover:bg-accent active:bg-accent"
+              onClick={() => {
+                setMoreOpen(false);
+                handleWatchLater();
+              }}
+            >
+              <Clock className="w-5 h-5 text-muted-foreground" />
+              {isWatchLater ? "Remove from Watch later" : "Save to Watch later"}
+            </button>
+            {isDownloaded && (
+              <button
+                type="button"
+                className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 active:bg-red-100"
+                onClick={() => {
+                  setMoreOpen(false);
+                  removeFromDownloads();
+                }}
+              >
+                <Trash2 className="w-5 h-5" />
+                Remove from downloads
+              </button>
+            )}
+            <div className="my-1 border-t" />
+            <button
+              type="button"
+              className="flex w-full items-center justify-center rounded-lg px-4 py-3 text-sm font-semibold transition-colors hover:bg-accent active:bg-accent"
+              onClick={() => setMoreOpen(false)}
+            >
+              Cancel
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 };

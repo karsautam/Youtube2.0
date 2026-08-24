@@ -51,7 +51,7 @@ const io = new Server(httpServer, {
 });
 initMeetingSocket(io);
 
-httpServer.listen(PORT, () => {
+httpServer.listen(PORT,"0.0.0.0", () => {
   console.log(`server running on port ${PORT}`);
   setInterval(autoExpireSubscriptions(), 60 * 60 * 1000);
   autoExpireSubscriptions()();

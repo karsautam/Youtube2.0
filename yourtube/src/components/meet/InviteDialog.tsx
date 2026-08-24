@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -79,7 +79,7 @@ export default function InviteDialog({
               <Input
                 readOnly
                 value={roomId}
-                className="flex-1 font-mono tracking-widest bg-white/10 text-white focus-visible:ring-blue-500"
+                className="flex-1 font-mono tracking-widest bg-background/10 text-white focus-visible:ring-blue-500"
               />
               <Button
                 variant="outline"
@@ -103,7 +103,7 @@ export default function InviteDialog({
                 <Input
                   readOnly
                   value={passcode}
-                  className="flex-1 font-mono tracking-widest bg-white/10 text-white focus-visible:ring-blue-500"
+                  className="flex-1 font-mono tracking-widest bg-background/10 text-white focus-visible:ring-blue-500"
                 />
                 <Button
                   variant="outline"

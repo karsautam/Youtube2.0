@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+﻿import React, { useEffect, useState } from "react";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { Button } from "./ui/button";
 import { useUser } from "@/lib/AuthContext";
@@ -63,12 +63,12 @@ const ChannelHeader = ({ channel }: any) => {
 
           <div className="flex-1 space-y-2">
             <h1 className="text-2xl md:text-4xl font-bold">{channel?.channelname}</h1>
-            <div className="flex flex-wrap gap-4 text-sm text-gray-600">
+            <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
               <span>@{channel?.channelname?.toLowerCase().replace(/\s+/g, "")}</span>
               <span>{formatCount(subscriberCount)} subscribers</span>
             </div>
             {channel?.description && (
-              <p className="text-sm text-gray-700 max-w-2xl">{channel?.description}</p>
+              <p className="text-sm text-foreground max-w-2xl">{channel?.description}</p>
             )}
           </div>
 
@@ -78,7 +78,7 @@ const ChannelHeader = ({ channel }: any) => {
               variant={isSubscribed ? "outline" : "default"}
               className={
                 isSubscribed
-                  ? "bg-gray-100 hover:bg-gray-200"
+                  ? "bg-muted hover:bg-accent"
                   : "bg-red-600 hover:bg-red-700"
               }
             >

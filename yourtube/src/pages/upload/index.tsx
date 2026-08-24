@@ -1,4 +1,4 @@
-import VideoUploader from "@/components/VideoUploader";
+﻿import VideoUploader from "@/components/VideoUploader";
 import { useUser } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/router";
@@ -11,14 +11,14 @@ const UploadPage = () => {
   if (!user) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center min-h-screen gap-4">
-        <p className="text-gray-600">Sign in to upload videos.</p>
+        <p className="text-muted-foreground">Sign in to upload videos.</p>
         <Button onClick={handlegooglesignin}>Sign in</Button>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 min-h-screen bg-white">
+    <div className="flex-1 min-h-screen bg-background">
       <div className="max-w-3xl mx-auto p-6">
         <h1 className="text-2xl font-semibold mb-6">Upload a video</h1>
         <VideoUploader
@@ -26,8 +26,8 @@ const UploadPage = () => {
           channelName=""
           onUploaded={() => router.push("/")}
         />
-        <p className="text-xs text-gray-400 mt-3">
-          Uploaded without selecting a channel — it will be listed as
+        <p className="text-xs text-muted-foreground mt-3">
+          Uploaded without selecting a channel â€” it will be listed as
           &quot;Standalone&quot;.
         </p>
       </div>

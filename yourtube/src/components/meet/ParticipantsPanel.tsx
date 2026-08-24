@@ -1,4 +1,4 @@
-import { Mic, MicOff, Video, VideoOff, X, MoreVertical, Shield, ShieldOff, Hand } from "lucide-react";
+﻿import { Mic, MicOff, Video, VideoOff, X, MoreVertical, Shield, ShieldOff, Hand } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -35,10 +35,10 @@ export default function ParticipantsPanel({
   const canModerate = isHost || isCohost;
 
   return (
-    <aside className="flex h-full w-80 flex-col border-l border-white/10 bg-slate-900 text-white">
+    <aside className="flex h-full w-80 max-w-[85vw] flex-col border-l border-white/10 bg-slate-900 text-white">
       <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
         <h2 className="font-semibold">Participants ({participants.length})</h2>
-        <Button variant="ghost" size="icon" onClick={onClose} className="text-white hover:bg-white/10">
+        <Button variant="ghost" size="icon" onClick={onClose} className="text-white hover:bg-background/10">
           <X className="h-5 w-5" />
         </Button>
       </div>
@@ -50,8 +50,8 @@ export default function ParticipantsPanel({
             <div
               key={p.socketId}
               className={cn(
-                "group flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-white/5",
-                p.speaking && !isMe && "bg-white/10"
+                "group flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-background/5",
+                p.speaking && !isMe && "bg-background/10"
               )}
             >
               <Avatar className="h-9 w-9">
@@ -68,7 +68,7 @@ export default function ParticipantsPanel({
                 </p>
                 <p className="flex items-center gap-2 text-xs text-slate-400">
                   {(p.isHost || p.isCohost) && (
-                    <span className="rounded bg-amber-500 px-1 text-[10px] font-bold text-black">
+                    <span className="rounded bg-amber-500 px-1 text-[10px] font-bold text-foreground">
                       {p.isHost ? "HOST" : "CO-HOST"}
                     </span>
                   )}
@@ -94,7 +94,7 @@ export default function ParticipantsPanel({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 text-white hover:bg-white/10"
+                    className="h-8 w-8 text-white hover:bg-background/10"
                     title={p.micOn ? "Mute" : "Unmute"}
                     onClick={() => hostSetMic(p.socketId, !p.micOn)}
                   >
@@ -109,7 +109,7 @@ export default function ParticipantsPanel({
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-white hover:bg-white/10"
+                        className="h-8 w-8 text-white hover:bg-background/10"
                       >
                         <MoreVertical className="h-4 w-4" />
                       </Button>

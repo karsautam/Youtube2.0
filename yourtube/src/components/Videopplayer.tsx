@@ -102,6 +102,12 @@ interface VideoPlayerProps {
   isTheater?: boolean;
   onTheaterChange?: (isTheater: boolean) => void;
   subtitles?: SubtitleTrack[];
+  prevVideo?: {
+    _id?: string;
+    videotitle?: string;
+    videochanel?: string;
+    thumbnail?: string;
+  };
   nextVideo?: {
     _id?: string;
     videotitle?: string;
@@ -115,11 +121,13 @@ function ControlButton({
   label,
   onClick,
   active = false,
+  className,
   children,
 }: {
   label: string;
   onClick?: () => void;
   active?: boolean;
+  className?: string;
   children: ReactNode;
 }) {
   return (
@@ -129,8 +137,9 @@ function ControlButton({
       title={label}
       onClick={onClick}
       className={cn(
-        "flex size-9 shrink-0 items-center justify-center rounded-md text-white/90 transition-colors hover:bg-white/10 hover:text-white",
-        active && "text-red-500 hover:text-red-400"
+        "flex size-8 shrink-0 items-center justify-center rounded-md text-white/90 transition-colors hover:bg-white/10 hover:text-white sm:size-9",
+        active && "text-red-500 hover:text-red-400",
+        className
       )}
     >
       {children}
@@ -151,7 +160,7 @@ function SettingsRow({
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full items-center justify-between gap-2 rounded px-2 py-1.5 text-sm text-white/90 transition-colors hover:bg-white/10"
+      className="flex w-full items-center justify-between gap-2 rounded px-2 py-1 text-[13px] text-white/90 transition-colors hover:bg-white/10"
     >
       <span className="truncate">{label}</span>
       {value ? (
@@ -212,6 +221,7 @@ export default function VideoPlayer({
   isTheater: isTheaterProp,
   onTheaterChange,
   subtitles,
+  prevVideo,
   nextVideo,
   onAutoplayNavigate,
 }: VideoPlayerProps) {
@@ -220,10 +230,21 @@ export default function VideoPlayer({
   const seekBarRef = useRef<HTMLDivElement>(null);
   const volumeBarRef = useRef<HTMLDivElement>(null);
   const settingsWrapRef = useRef<HTMLDivElement>(null);
+  const suppressClickRef = useRef(0);
+  const lastGearToggleRef = useRef(0);
   const volumeWrapRef = useRef<HTMLDivElement>(null);
 
   const controlsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scrubbingRef = useRef(false);
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const touchHandledRef = useRef(false);
+  const centerFlashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
+  const sideTapRef = useRef<{
+    left: ReturnType<typeof setTimeout> | null;
+    right: ReturnType<typeof setTimeout> | null;
+  }>({ left: null, right: null });
   const settingsOpenRef = useRef(false);
   const volumeOpenRef = useRef(false);
   const lastVolumeRef = useRef(1);
@@ -246,6 +267,11 @@ export default function VideoPlayer({
   const [speed, setSpeed] = useState(1);
   const [controlsVisible, setControlsVisible] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsMenuPos, setSettingsMenuPos] = useState<{
+    bottom: number;
+    right: number;
+    maxHeight: number;
+  } | null>(null);
   const [volumeOpen, setVolumeOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isPip, setIsPip] = useState(false);
@@ -274,6 +300,10 @@ export default function VideoPlayer({
   >({ kind: "off" });
   const [sleepRemaining, setSleepRemaining] = useState<number | null>(null);
   const [sourceHeight, setSourceHeight] = useState<number | null>(null);
+  const [centerFlash, setCenterFlash] = useState<{
+    type: "play" | "pause";
+    id: number;
+  } | null>(null);
 
   const src = video?.filepath ? mediaUrl(video.filepath) : null;
   const videoId = video?._id;
@@ -472,6 +502,18 @@ export default function VideoPlayer({
     pendingSeekRef.current = null;
   }, [videoId]);
 
+  useEffect(() => {
+    if (!settingsOpen || !settingsWrapRef.current) return;
+    const r = settingsWrapRef.current.getBoundingClientRect();
+    setSettingsMenuPos({
+      bottom: Math.round(window.innerHeight - r.top + 6),
+      right: Math.max(8, Math.round(window.innerWidth - r.right)),
+      maxHeight: Math.round(
+        Math.max(160, Math.min(window.innerHeight * 0.6, r.top - 12))
+      ),
+    });
+  }, [settingsOpen]);
+
   const scheduleControlsHide = useCallback(() => {
     if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
     controlsTimerRef.current = setTimeout(() => {
@@ -580,6 +622,10 @@ export default function VideoPlayer({
       if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
       if (resumeNoticeTimerRef.current)
         clearTimeout(resumeNoticeTimerRef.current);
+      if (centerFlashTimerRef.current)
+        clearTimeout(centerFlashTimerRef.current);
+      if (sideTapRef.current.left) clearTimeout(sideTapRef.current.left);
+      if (sideTapRef.current.right) clearTimeout(sideTapRef.current.right);
     };
   }, []);
 
@@ -621,19 +667,6 @@ export default function VideoPlayer({
       v.muted = true;
     }
   }, []);
-
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const onWheel = (e: WheelEvent) => {
-      const v = videoRef.current;
-      if (!v) return;
-      e.preventDefault();
-      setVideoVolume(v.volume + (e.deltaY < 0 ? 0.05 : -0.05));
-    };
-    el.addEventListener("wheel", onWheel, { passive: false });
-    return () => el.removeEventListener("wheel", onWheel);
-  }, [setVideoVolume]);
 
   const toggleFullscreen = useCallback(() => {
     const el = containerRef.current;
@@ -770,10 +803,98 @@ export default function VideoPlayer({
     }
   };
 
-  const handleContainerClick = () => {
-    togglePlay();
+  const flashCenter = useCallback(() => {
+    if (centerFlashTimerRef.current) clearTimeout(centerFlashTimerRef.current);
+    setCenterFlash({
+      type: videoRef.current?.paused ? "pause" : "play",
+      id: Date.now(),
+    });
+    centerFlashTimerRef.current = setTimeout(() => setCenterFlash(null), 500);
+  }, []);
+
+  const makeZonePointerUp = (side: "left" | "right") =>
+    (e: ReactPointerEvent<HTMLDivElement>) => {
+      e.stopPropagation();
+      if (
+        settingsOpenRef.current &&
+        !settingsWrapRef.current?.contains(e.target as Node)
+      ) {
+        setSettingsOpen(false);
+        return;
+      }
+      if (e.pointerType !== "touch") return;
+      const pending = sideTapRef.current[side];
+      if (pending) {
+        clearTimeout(pending);
+        sideTapRef.current[side] = null;
+        cancelAutoplay();
+        const v = videoRef.current;
+        if (v && Number.isFinite(v.duration)) {
+          v.currentTime = Math.min(
+            Math.max(v.currentTime + (side === "left" ? -10 : 10), 0),
+            v.duration
+          );
+          setCurrentTime(v.currentTime);
+        }
+      } else {
+        sideTapRef.current[side] = setTimeout(() => {
+          sideTapRef.current[side] = null;
+          showControls();
+        }, 250);
+      }
+    };
+
+  const handleContainerTap = () => {
     showControls();
     containerRef.current?.focus({ preventScroll: true });
+    togglePlay();
+  };
+
+  const handleContainerClick = () => {
+    if (Date.now() - suppressClickRef.current < 500) {
+      suppressClickRef.current = 0;
+      touchHandledRef.current = false;
+      return;
+    }
+    if (touchHandledRef.current) {
+      touchHandledRef.current = false;
+      return;
+    }
+    if (settingsOpenRef.current) {
+      setSettingsOpen(false);
+      return;
+    }
+    handleContainerTap();
+  };
+
+  const handleContainerPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (
+      settingsOpenRef.current &&
+      !settingsWrapRef.current?.contains(e.target as Node)
+    ) {
+      setSettingsOpen(false);
+      suppressClickRef.current = Date.now();
+    }
+    if (e.pointerType === "touch") {
+      touchStartRef.current = { x: e.clientX, y: e.clientY };
+    }
+  };
+
+  const handleContainerPointerUp = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (e.pointerType !== "touch") return;
+    const start = touchStartRef.current;
+    touchStartRef.current = null;
+    if (!start) return;
+    if (Math.hypot(e.clientX - start.x, e.clientY - start.y) > 10) return;
+    const target = e.target as HTMLElement | null;
+    if (target?.closest("[data-video-controls]")) return;
+    if (settingsOpenRef.current) {
+      touchHandledRef.current = true;
+      setSettingsOpen(false);
+      return;
+    }
+    touchHandledRef.current = true;
+    showControls();
   };
 
   const handleContainerMouseMove = () => {
@@ -856,6 +977,11 @@ export default function VideoPlayer({
       onDoubleClick={toggleFullscreen}
       onKeyDown={handleKeyDown}
       onMouseMove={handleContainerMouseMove}
+      onPointerDown={handleContainerPointerDown}
+      onPointerUp={handleContainerPointerUp}
+      onPointerCancel={() => {
+        touchStartRef.current = null;
+      }}
       className={cn(
         "video-player-root group relative aspect-video w-full select-none overflow-hidden rounded-lg bg-black outline-none",
         !controlsVisible && "cursor-none",
@@ -968,6 +1094,61 @@ export default function VideoPlayer({
       )}
 
       <div
+        aria-hidden="true"
+        className="absolute inset-y-0 left-0 z-[5] w-1/3"
+        onPointerDown={(e) => e.stopPropagation()}
+        onPointerUp={makeZonePointerUp("left")}
+        onClick={(e) => e.stopPropagation()}
+        onDoubleClick={(e) => e.stopPropagation()}
+      />
+      <div
+        aria-hidden="true"
+        className="absolute inset-y-0 right-0 z-[5] w-1/3"
+        onPointerDown={(e) => e.stopPropagation()}
+        onPointerUp={makeZonePointerUp("right")}
+        onClick={(e) => e.stopPropagation()}
+        onDoubleClick={(e) => e.stopPropagation()}
+      />
+
+      {centerFlash && (
+        <div
+          key={centerFlash.id}
+          className="pointer-events-none absolute inset-0 z-[6] flex items-center justify-center"
+        >
+          <div className="flex size-16 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm">
+            {centerFlash.type === "play" ? (
+              <Play className="ml-1 size-8 fill-white text-white" />
+            ) : (
+              <Pause className="size-8 fill-white text-white" />
+            )}
+          </div>
+        </div>
+      )}
+
+      {!waiting && countdown === null && started && (playing ? controlsVisible : true) && (
+        <button
+          type="button"
+          data-video-controls
+          aria-label={playing ? "Pause" : "Play"}
+          onClick={(e) => {
+            e.stopPropagation();
+            togglePlay();
+            showControls();
+          }}
+          className={cn(
+            "absolute left-1/2 top-1/2 z-[8] flex size-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-black/50 text-white backdrop-blur-sm",
+            playing && "lg:hidden"
+          )}
+        >
+          {playing ? (
+            <Pause className="size-8 fill-white text-white" />
+          ) : (
+            <Play className="ml-1 size-8 fill-white text-white" />
+          )}
+        </button>
+      )}
+
+      <div
         className={cn(
           "pointer-events-none absolute inset-x-0 top-0 z-10 flex items-center px-4 pt-3 transition-opacity duration-300",
           !controlsVisible && "opacity-0"
@@ -982,14 +1163,10 @@ export default function VideoPlayer({
         )}
       </div>
 
-      {started && !playing && countdown === null && (
+      {started && !playing && countdown === null && ended && (
         <div className="pointer-events-none absolute inset-0 z-[5] flex items-center justify-center">
           <div className="flex size-16 items-center justify-center rounded-full border border-white/20 bg-black/40 backdrop-blur-sm transition-transform duration-200 group-hover:scale-105">
-            {ended ? (
-              <RotateCcw className="size-8 text-white" />
-            ) : (
-              <Play className="ml-1 size-8 fill-white text-white" />
-            )}
+            <RotateCcw className="size-8 text-white" />
           </div>
         </div>
       )}
@@ -1004,7 +1181,10 @@ export default function VideoPlayer({
       )}
 
       {countdown !== null && nextVideo && (
-        <div className="absolute inset-0 z-[7] flex items-center justify-center bg-black/40 px-4">
+        <div
+          data-video-controls
+          className="absolute inset-0 z-[7] flex items-center justify-center bg-black/40 px-4"
+        >
           <div className="flex w-full max-w-[430px] items-center gap-3 rounded-xl border border-white/10 bg-zinc-900/95 p-3 shadow-2xl">
             <div className="relative aspect-video w-40 shrink-0 overflow-hidden rounded-lg">
               {nextVideo.thumbnail ? (
@@ -1100,16 +1280,17 @@ export default function VideoPlayer({
       )}
 
       <div
+        data-video-controls
         onClick={(e) => e.stopPropagation()}
         onDoubleClick={(e) => e.stopPropagation()}
         className={cn(
-          "absolute inset-x-0 bottom-0 z-10 px-4 pb-2 pt-10 transition-opacity duration-300",
-          !controlsVisible && "pointer-events-none opacity-0"
+          "pointer-events-none absolute inset-x-0 bottom-0 z-10 px-4 pb-2 pt-10 transition-opacity duration-300",
+          !controlsVisible && "opacity-0"
         )}
       >
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
 
-        <div className="relative">
+        <div className="pointer-events-auto relative">
           <div
             ref={seekBarRef}
             className="group/seek relative flex h-5 w-full cursor-pointer items-center"
@@ -1150,22 +1331,22 @@ export default function VideoPlayer({
           </div>
         </div>
 
-        <div className="relative mt-1 flex items-center gap-0.5 text-white">
+        <div className="pointer-events-auto relative mt-1 flex items-center gap-0 sm:gap-0.5 text-white">
           <ControlButton
             label={playing ? "Pause (k)" : "Play (k)"}
             onClick={togglePlay}
           >
             {playing ? (
-              <Pause className="size-5 fill-white" />
+              <Pause className="size-[18px] fill-white sm:size-5" />
             ) : (
-              <Play className="size-5 fill-white" />
+              <Play className="size-[18px] fill-white sm:size-5" />
             )}
           </ControlButton>
           <ControlButton label="Back 10 seconds (j)" onClick={() => skip(-10)}>
-            <RotateCcw className="size-5" />
+            <RotateCcw className="size-4 sm:size-5" />
           </ControlButton>
           <ControlButton label="Forward 10 seconds (l)" onClick={() => skip(10)}>
-            <RotateCw className="size-5" />
+            <RotateCw className="size-4 sm:size-5" />
           </ControlButton>
 
           <div
@@ -1175,7 +1356,7 @@ export default function VideoPlayer({
             onMouseLeave={() => setVolumeOpen(false)}
           >
             <ControlButton label={muted ? "Unmute (m)" : "Mute (m)"} onClick={toggleMute}>
-              <VolumeIcon className="size-5" />
+              <VolumeIcon className="size-[18px] sm:size-5" />
             </ControlButton>
             <div
               className={cn(
@@ -1199,10 +1380,10 @@ export default function VideoPlayer({
             </div>
           </div>
 
-          <span className="ml-2 shrink-0 text-xs font-medium tabular-nums text-white/90">
+          <span className="ml-1 shrink-0 text-xs font-medium tabular-nums text-white/90 sm:ml-2">
             {formatTime(currentTime)} / {formatTime(duration)}
             {duration > 0 && currentTime > 0 && (
-              <span className="ml-1 text-white/50">
+              <span className="ml-1 hidden text-white/50 sm:inline">
                 (−{formatTime(duration - currentTime)})
               </span>
             )}
@@ -1243,12 +1424,28 @@ export default function VideoPlayer({
               <ControlButton
                 label="Settings"
                 active={settingsOpen}
-                onClick={() => setSettingsOpen((o) => !o)}
+                onClick={() => {
+                  const now = Date.now();
+                  if (now - lastGearToggleRef.current < 350) return;
+                  lastGearToggleRef.current = now;
+                  setSettingsOpen((o) => !o);
+                }}
               >
-                <Settings className="size-5" />
+                <Settings className="size-[18px] sm:size-5" />
               </ControlButton>
               {settingsOpen && (
-                <div className="absolute bottom-full right-0 z-20 mb-2 max-h-[70vh] w-64 overflow-y-auto rounded-lg border border-white/10 bg-black/90 p-1.5 shadow-2xl backdrop-blur-md">
+                <div
+                  className="fixed z-50 w-56 touch-pan-y overflow-y-auto overscroll-contain rounded-lg border border-white/10 bg-black/90 p-1 shadow-2xl backdrop-blur-md"
+                  style={
+                    settingsMenuPos
+                      ? {
+                          bottom: settingsMenuPos.bottom,
+                          right: settingsMenuPos.right,
+                          maxHeight: settingsMenuPos.maxHeight,
+                        }
+                      : undefined
+                  }
+                >
                   {settingsPanel === "main" && (
                     <>
                       <p className="px-2 pb-1 pt-0.5 text-[10px] font-semibold uppercase tracking-widest text-white/50">
@@ -1401,7 +1598,10 @@ export default function VideoPlayer({
                 onClick={toggleCaptions}
               >
                 <Captions
-                  className={cn("size-5", captionsEnabled && "fill-current")}
+                  className={cn(
+                    "size-[18px] sm:size-5",
+                    captionsEnabled && "fill-current"
+                  )}
                 />
               </ControlButton>
             )}
@@ -1409,28 +1609,30 @@ export default function VideoPlayer({
               label={isTheater ? "Exit theater mode (t)" : "Theater mode (t)"}
               active={isTheater}
               onClick={toggleTheater}
+              className="hidden sm:flex"
             >
               {isTheater ? (
-                <RectangleVertical className="size-5" />
+                <RectangleVertical className="size-[18px] sm:size-5" />
               ) : (
-                <RectangleHorizontal className="size-5" />
+                <RectangleHorizontal className="size-[18px] sm:size-5" />
               )}
             </ControlButton>
             <ControlButton
               label="Picture in picture"
               active={isPip}
               onClick={togglePip}
+              className="hidden sm:flex"
             >
-              <PictureInPicture2 className="size-5" />
+              <PictureInPicture2 className="size-[18px] sm:size-5" />
             </ControlButton>
             <ControlButton
               label={isFullscreen ? "Exit fullscreen (f)" : "Fullscreen (f)"}
               onClick={toggleFullscreen}
             >
               {isFullscreen ? (
-                <Minimize className="size-5" />
+                <Minimize className="size-[18px] sm:size-5" />
               ) : (
-                <Maximize className="size-5" />
+                <Maximize className="size-[18px] sm:size-5" />
               )}
             </ControlButton>
           </div>

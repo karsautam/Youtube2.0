@@ -74,29 +74,42 @@ const index = () => {
     allVideos.length > 0
       ? allVideos[(currentIndex + 1) % allVideos.length]
       : undefined;
+  const prevVideo =
+    allVideos.length > 1
+      ? allVideos[
+          currentIndex > 0 ? currentIndex - 1 : allVideos.length - 1
+        ]
+      : undefined;
   return (
-    <div className="min-h-screen bg-white">
-      <div className={`${isTheater ? "max-w-[1600px]" : "max-w-7xl"} mx-auto p-4`}>
-        <div className={`grid grid-cols-1 gap-6 ${isTheater ? "" : "lg:grid-cols-3"}`}>
-          <div className={`${isTheater ? "" : "lg:col-span-2"} space-y-4`}>
-            <Videopplayer
-              video={videos}
-              isTheater={isTheater}
-              onTheaterChange={setIsTheater}
-              nextVideo={nextVideo}
-              onAutoplayNavigate={(vid) => router.push(`/watch/${vid}`)}
-              subtitles={(videos.subtitles || []).map((s: any) => ({
-                src: `${BACKEND_URL}/${s.filepath}`,
-                lang: s.lang || "en",
-                label: s.label || s.lang || "Subtitles",
-              }))}
-            />
+    <div className="min-h-screen bg-background">
+      <div className="mx-auto max-w-7xl lg:p-4">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="min-w-0 space-y-4">
+            <div className="sticky top-14 z-30 bg-background lg:static lg:top-auto lg:z-auto">
+              <Videopplayer
+                video={videos}
+                isTheater={isTheater}
+                onTheaterChange={setIsTheater}
+                nextVideo={nextVideo}
+                prevVideo={prevVideo}
+                onAutoplayNavigate={(vid) => router.push(`/watch/${vid}`)}
+                subtitles={(videos.subtitles || []).map((s: any) => ({
+                  src: `${BACKEND_URL}/${s.filepath}`,
+                  lang: s.lang || "en",
+                  label: s.label || s.lang || "Subtitles",
+                }))}
+              />
+            </div>
             <VideoInfo video={videos} />
             <Comments videoId={id} />
           </div>
-          <div className={`space-y-4 ${isTheater ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" : ""}`}>
-            <RelatedVideos videos={video} />
-          </div>
+          <aside className="space-y-4">
+            <RelatedVideos
+              videos={allVideos.filter(
+                (vid: any, i: number) => vid._id !== id && i !== currentIndex
+              )}
+            />
+          </aside>
         </div>
       </div>
     </div>

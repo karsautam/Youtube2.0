@@ -1,4 +1,4 @@
-import { useUser } from "@/lib/AuthContext";
+﻿import { useUser } from "@/lib/AuthContext";
 import axiosInstance from "@/lib/axiosinstance";
 import mediaUrl from "@/lib/mediaUrl";
 import Header from "@/components/Header";
@@ -10,14 +10,14 @@ import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 function formatSize(bytes: number): string {
-  if (!bytes || bytes <= 0) return "—";
+  if (!bytes || bytes <= 0) return "â€”";
   const mb = bytes / (1024 * 1024);
   if (mb >= 1024) return `${(mb / 1024).toFixed(2)} GB`;
   return `${mb.toFixed(1)} MB`;
 }
 
 const planColor: Record<string, string> = {
-  free: "bg-gray-100 text-gray-700",
+  free: "bg-muted text-foreground",
   bronze: "bg-amber-100 text-amber-800",
   silver: "bg-slate-200 text-slate-700",
   gold: "bg-yellow-100 text-yellow-800",
@@ -56,17 +56,17 @@ const Downloads = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-background">
       <Header />
       <div className="max-w-4xl mx-auto p-6">
         <h1 className="text-2xl font-semibold mb-6">Downloads</h1>
 
         {!user ? (
-          <p className="text-gray-600">Sign in to see your downloads.</p>
+          <p className="text-muted-foreground">Sign in to see your downloads.</p>
         ) : loading ? (
-          <p className="text-gray-500">Loading...</p>
+          <p className="text-muted-foreground">Loading...</p>
         ) : downloads.length === 0 ? (
-          <p className="text-gray-600">No downloads yet.</p>
+          <p className="text-muted-foreground">No downloads yet.</p>
         ) : (
           <div className="space-y-3">
             {downloads.map((d) => {
@@ -74,13 +74,13 @@ const Downloads = () => {
               return (
                 <div
                   key={d._id}
-                  className="flex gap-3 items-center border rounded-lg p-3 hover:bg-gray-50 transition-colors"
+                  className="flex gap-3 items-center border rounded-lg p-3 hover:bg-muted transition-colors"
                 >
                   <Link
                     href={`/watch/${v._id}`}
                     className="flex gap-3 items-center flex-1 min-w-0"
                   >
-                    <div className="w-36 aspect-video bg-gray-100 rounded overflow-hidden flex-shrink-0">
+                    <div className="w-36 aspect-video bg-muted rounded overflow-hidden flex-shrink-0">
                       {v.thumbnail && (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
@@ -94,11 +94,11 @@ const Downloads = () => {
                       <h3 className="font-medium text-sm line-clamp-1">
                         {v.videotitle}
                       </h3>
-                      <p className="text-xs text-gray-500 mt-0.5">
+                      <p className="text-xs text-muted-foreground mt-0.5">
                         Downloaded{" "}
                         {format(new Date(d.createdAt), "dd MMM yyyy, hh:mm a")}
                       </p>
-                      <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5 text-xs text-gray-600">
+                      <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5 text-xs text-muted-foreground">
                         <span>Size: {formatSize(d.fileSizeBytes)}</span>
                         <span
                           className={`px-1.5 py-0.5 rounded ${
@@ -134,7 +134,7 @@ const Downloads = () => {
           </div>
         )}
         <Button variant="ghost" asChild className="mt-6">
-          <Link href="/">← Back to home</Link>
+          <Link href="/">â† Back to home</Link>
         </Button>
       </div>
     </div>

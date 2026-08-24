@@ -1,4 +1,4 @@
-import {
+﻿import {
   CircleDot,
   Hand,
   MessagesSquare,
@@ -62,7 +62,7 @@ function IconButton({
       onClick={onClick}
       title={title}
       className={cn(
-        "h-12 w-12 rounded-full bg-white/10 text-white hover:bg-white/20 hover:text-white",
+        "h-12 w-12 rounded-full bg-background/10 text-white hover:bg-background/20 hover:text-white",
         active && "bg-blue-600 hover:bg-blue-600",
         danger && "bg-red-600 hover:bg-red-700"
       )}
@@ -108,7 +108,7 @@ export default function ControlBar(props: Props) {
         )}
       </div>
 
-      <div className="mx-1 hidden h-8 w-px bg-white/20 sm:block" />
+      <div className="mx-1 hidden h-8 w-px bg-background/20 sm:block" />
 
       <div className="flex items-center gap-2">
         <IconButton
@@ -137,7 +137,7 @@ export default function ControlBar(props: Props) {
         </IconButton>
       </div>
 
-      <div className="mx-1 hidden h-8 w-px bg-white/20 sm:block" />
+      <div className="mx-1 hidden h-8 w-px bg-background/20 sm:block" />
 
       <div className="flex items-center gap-2">
         <IconButton
@@ -183,11 +183,11 @@ export default function ControlBar(props: Props) {
         )}
         {props.recording && (
           <span className="flex items-center gap-1.5 rounded-full bg-red-600 px-2 py-1 text-xs font-semibold text-white">
-            <span className="h-2 w-2 animate-pulse rounded-full bg-white" />
+            <span className="h-2 w-2 animate-pulse rounded-full bg-background" />
             REC
           </span>
         )}
-        <span className="rounded-full bg-white/10 px-2 py-1 text-xs tabular-nums text-white">
+        <span className="rounded-full bg-background/10 px-2 py-1 text-xs tabular-nums text-white">
           {formatDuration(props.callDuration)}
         </span>
       </div>

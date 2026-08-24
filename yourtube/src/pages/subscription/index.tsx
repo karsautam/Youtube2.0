@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useUser } from "@/lib/AuthContext";
 import axiosInstance from "@/lib/axiosinstance";
 import { Check, X, Crown, ChevronDown, ChevronUp, Download, Play, Shield, Zap, Clock, CreditCard, Receipt, AlertCircle } from "lucide-react";
@@ -203,7 +203,7 @@ export default function SubscriptionPage() {
   };
 
   if (loading) {
-    return <main className="flex-1 p-6"><div className="max-w-6xl mx-auto text-center py-20 text-gray-500">Loading...</div></main>;
+    return <main className="flex-1 p-6"><div className="max-w-6xl mx-auto text-center py-20 text-muted-foreground">Loading...</div></main>;
   }
 
   const currentPlanTier = subStatus?.plan || "free";
@@ -221,20 +221,20 @@ export default function SubscriptionPage() {
             <Crown className="w-8 h-8 text-amber-500" />
             <h1 className="text-3xl font-bold">YourTube Membership</h1>
           </div>
-          <p className="text-gray-500 text-center mb-6">Choose the plan that fits you best</p>
+          <p className="text-muted-foreground text-center mb-6">Choose the plan that fits you best</p>
 
           <div className="flex justify-center gap-2 mb-8">
-            <button onClick={() => setActiveTab("plans")} className={"px-6 py-2 rounded-full font-medium text-sm transition " + (activeTab === "plans" ? "bg-black text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200")}>Plans</button>
-            <button onClick={() => setActiveTab("dashboard")} className={"px-6 py-2 rounded-full font-medium text-sm transition " + (activeTab === "dashboard" ? "bg-black text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200")}>My Subscription</button>
+            <button onClick={() => setActiveTab("plans")} className={"px-6 py-2 rounded-full font-medium text-sm transition " + (activeTab === "plans" ? "bg-black text-white" : "bg-muted text-muted-foreground hover:bg-accent")}>Plans</button>
+            <button onClick={() => setActiveTab("dashboard")} className={"px-6 py-2 rounded-full font-medium text-sm transition " + (activeTab === "dashboard" ? "bg-black text-white" : "bg-muted text-muted-foreground hover:bg-accent")}>My Subscription</button>
           </div>
 
           {activeTab === "plans" && (
             <>
               <div className="flex justify-center mb-8">
-                <div className="inline-flex bg-gray-100 rounded-full p-1">
+                <div className="inline-flex bg-muted rounded-full p-1">
                   {["monthly", "quarterly", "yearly"].map((cycle) => (
                     <button key={cycle} onClick={() => setSelectedCycle(cycle)}
-                      className={"px-5 py-2 rounded-full text-sm font-medium transition " + (selectedCycle === cycle ? "bg-white shadow text-black" : "text-gray-500 hover:text-gray-700")}>
+                      className={"px-5 py-2 rounded-full text-sm font-medium transition " + (selectedCycle === cycle ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground")}>
                       {CYCLE_LABELS[cycle]}
                       {cycle === "yearly" && <span className="ml-1 text-xs text-green-600 font-bold">Save 33%</span>}
                     </button>
@@ -254,7 +254,7 @@ export default function SubscriptionPage() {
               </div>
 
               <button onClick={() => setShowComparison(!showComparison)}
-                className="flex items-center gap-2 mx-auto text-sm font-medium text-gray-600 hover:text-black mb-4">
+                className="flex items-center gap-2 mx-auto text-sm font-medium text-muted-foreground hover:text-foreground mb-4">
                 Compare all features {showComparison ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
               </button>
               {showComparison && <ComparisonTable plans={plans} cycle={selectedCycle} />}
@@ -280,23 +280,23 @@ function PlanCard({ plan, cycle, isCurrent, isPaid, isPopular, onSelect, subscri
   const price = plan.pricing[cycle as keyof typeof plan.pricing] || 0;
   const yearlySavings = plan.pricing.monthly > 0 ? (plan.pricing.monthly * 12 - plan.pricing.yearly) / 100 : 0;
   return (
-    <div className={"relative rounded-2xl border-2 p-6 flex flex-col transition-all " + (isPopular ? "border-amber-400 shadow-lg shadow-amber-100" : "border-gray-200 hover:border-gray-300")}>
+    <div className={"relative rounded-2xl border-2 p-6 flex flex-col transition-all " + (isPopular ? "border-amber-400 shadow-lg shadow-amber-100" : "border-border hover:border-border")}>
       {isPopular && <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-500 text-white text-xs font-bold px-4 py-1 rounded-full">Most Popular</div>}
-      {plan.tier === "free" && <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gray-500 text-white text-xs font-bold px-4 py-1 rounded-full">Free</div>}
+      {plan.tier === "free" && <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-muted0 text-white text-xs font-bold px-4 py-1 rounded-full">Free</div>}
       <div className="w-10 h-10 rounded-full flex items-center justify-center mb-3" style={{ backgroundColor: plan.color + "20" }}>
         <Crown className="w-5 h-5" style={{ color: plan.color }} />
       </div>
       <h3 className="text-xl font-bold">{plan.name}</h3>
-      <p className="text-gray-500 text-sm mt-1 mb-4">{plan.description}</p>
+      <p className="text-muted-foreground text-sm mt-1 mb-4">{plan.description}</p>
       <div className="mb-5">
         <span className="text-3xl font-extrabold">{formatPrice(price)}</span>
-        {price > 0 && <span className="text-gray-500 text-sm">/{cycle === "yearly" ? "year" : cycle === "quarterly" ? "quarter" : "month"}</span>}
+        {price > 0 && <span className="text-muted-foreground text-sm">/{cycle === "yearly" ? "year" : cycle === "quarterly" ? "quarter" : "month"}</span>}
       </div>
       {plan.tier === "free" ? null : (
         <div className="space-y-1.5 mb-5 text-xs">
-          <div className="flex justify-between"><span className="text-gray-500">Monthly</span><span className="font-medium">{formatPrice(plan.pricing.monthly)}/mo</span></div>
-          <div className="flex justify-between"><span className="text-gray-500">Quarterly</span><span className="font-medium">{formatPrice(plan.pricing.quarterly)}/qtr</span></div>
-          <div className="flex justify-between"><span className="text-gray-500">Yearly</span><span className="font-medium text-green-600">{formatPrice(plan.pricing.yearly)}/yr</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">Monthly</span><span className="font-medium">{formatPrice(plan.pricing.monthly)}/mo</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">Quarterly</span><span className="font-medium">{formatPrice(plan.pricing.quarterly)}/qtr</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">Yearly</span><span className="font-medium text-green-600">{formatPrice(plan.pricing.yearly)}/yr</span></div>
         </div>
       )}
       <ul className="space-y-2 mb-6 flex-1">
@@ -308,7 +308,7 @@ function PlanCard({ plan, cycle, isCurrent, isPaid, isPopular, onSelect, subscri
         {plan.features.priorityAccess && <li className="flex items-center gap-2 text-sm"><Check className="w-4 h-4 text-green-500 shrink-0" />Priority access</li>}
       </ul>
       <button onClick={onSelect} disabled={isCurrent || subscribing}
-        className={"w-full py-3 rounded-full font-semibold text-sm transition " + (isCurrent ? "bg-gray-200 text-gray-500 cursor-default" : isPopular ? "bg-amber-500 text-white hover:bg-amber-600" : plan.tier === "free" ? "bg-gray-200 text-gray-700 hover:bg-gray-300" : "bg-gray-900 text-white hover:bg-gray-800")}>
+        className={"w-full py-3 rounded-full font-semibold text-sm transition " + (isCurrent ? "bg-muted text-muted-foreground cursor-default" : isPopular ? "bg-red-600 text-white hover:bg-red-700" : plan.tier === "free" ? "bg-muted text-foreground hover:bg-muted-foreground/30" : "bg-primary text-primary-foreground hover:bg-primary/90")}>
         {isCurrent ? "Current Plan" : subscribing ? "Processing..." : plan.tier === "free" ? "Get Started" : "Subscribe"}
       </button>
     </div>
@@ -322,24 +322,24 @@ function ComparisonTable({ plans, cycle }: { plans: Plan[]; cycle: string }) {
       <table className="w-full text-sm border-collapse">
         <thead>
           <tr className="border-b">
-            <th className="text-left py-3 px-4 font-medium text-gray-500">Feature</th>
+            <th className="text-left py-3 px-4 font-medium text-muted-foreground">Feature</th>
             {plans.map((p) => <th key={p.tier} className="text-center py-3 px-4 font-bold">{p.name}</th>)}
           </tr>
         </thead>
         <tbody>
-          <tr className="border-b bg-gray-50">
+          <tr className="border-b bg-muted">
             <td className="py-3 px-4 font-medium">Price ({cycle})</td>
             {plans.map((p) => <td key={p.tier} className="text-center py-3 px-4 font-semibold">{formatPrice(p.pricing[cycle as keyof typeof p.pricing])}</td>)}
           </tr>
           {keys.map((key) => (
-            <tr key={key} className="border-b hover:bg-gray-50">
-              <td className="py-3 px-4 text-gray-700">{featureLabels[key]}</td>
+            <tr key={key} className="border-b hover:bg-muted">
+              <td className="py-3 px-4 text-foreground">{featureLabels[key]}</td>
               {plans.map((p) => {
                 const val = (p.features as any)[key];
                 const isBool = typeof val === "boolean";
                 return (
                   <td key={p.tier} className="text-center py-3 px-4">
-                    {isBool ? (val ? <Check className="w-5 h-5 text-green-500 mx-auto" /> : <X className="w-5 h-5 text-gray-300 mx-auto" />) : <span className="font-medium">{formatFeatureValue(key, val)}</span>}
+                    {isBool ? (val ? <Check className="w-5 h-5 text-green-500 mx-auto" /> : <X className="w-5 h-5 text-muted-foreground/50 mx-auto" />) : <span className="font-medium">{formatFeatureValue(key, val)}</span>}
                   </td>
                 );
               })}
@@ -357,7 +357,7 @@ function Dashboard({ status, plans, billingHistory, onCancel, onReactivate, onUp
 }) {
   const planDef = plans.find((p) => p.tier === status.plan);
   const formatDate = (d: string | null) => d ? new Date(d).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "N/A";
-  const statusColor = status.cancelAtPeriodEnd ? "text-orange-500" : status.plan === "free" ? "text-gray-500" : "text-green-600";
+  const statusColor = status.cancelAtPeriodEnd ? "text-orange-500" : status.plan === "free" ? "text-muted-foreground" : "text-green-600";
   const statusText = status.cancelAtPeriodEnd ? "Cancels at period end" : status.plan === "free" ? "Free Plan" : "Active";
   return (
     <div className="space-y-6">
@@ -381,32 +381,32 @@ function Dashboard({ status, plans, billingHistory, onCancel, onReactivate, onUp
             {status.cancelAtPeriodEnd && (
               <button onClick={onReactivate} className="px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition">Reactivate</button>
             )}
-            <button onClick={() => onUpgrade(status.plan)} className="px-4 py-2 text-sm bg-black text-white rounded-lg hover:bg-gray-800 transition">
+            <button onClick={() => onUpgrade(status.plan)} className="px-4 py-2 text-sm bg-foreground text-background rounded-lg hover:bg-foreground/90 transition">
               {status.plan === "free" ? "Upgrade" : "Change Plan"}
             </button>
           </div>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-          <div className="bg-gray-50 rounded-xl p-4">
-            <p className="text-xs text-gray-500 mb-1">Billing Cycle</p>
+          <div className="bg-muted rounded-xl p-4">
+            <p className="text-xs text-muted-foreground mb-1">Billing Cycle</p>
             <p className="font-semibold">{status.billingCycle ? CYCLE_LABELS[status.billingCycle] : "N/A"}</p>
           </div>
-          <div className="bg-gray-50 rounded-xl p-4">
-            <p className="text-xs text-gray-500 mb-1">Start Date</p>
+          <div className="bg-muted rounded-xl p-4">
+            <p className="text-xs text-muted-foreground mb-1">Start Date</p>
             <p className="font-semibold">{formatDate(status.startDate)}</p>
           </div>
-          <div className="bg-gray-50 rounded-xl p-4">
-            <p className="text-xs text-gray-500 mb-1">Expiry / Renewal</p>
+          <div className="bg-muted rounded-xl p-4">
+            <p className="text-xs text-muted-foreground mb-1">Expiry / Renewal</p>
             <p className="font-semibold">{formatDate(status.expiryDate)}</p>
-            {status.daysRemaining !== null && status.daysRemaining > 0 && <p className="text-xs text-gray-400 mt-0.5">{status.daysRemaining} days left</p>}
+            {status.daysRemaining !== null && status.daysRemaining > 0 && <p className="text-xs text-muted-foreground mt-0.5">{status.daysRemaining} days left</p>}
           </div>
-          <div className="bg-gray-50 rounded-xl p-4">
-            <p className="text-xs text-gray-500 mb-1">Amount Paid</p>
+          <div className="bg-muted rounded-xl p-4">
+            <p className="text-xs text-muted-foreground mb-1">Amount Paid</p>
             <p className="font-semibold">{status.amountPaid ? formatCurrency(status.amountPaid) : "Free"}</p>
           </div>
         </div>
         {status.invoiceNumber && (
-          <div className="mt-4 flex items-center gap-4 text-xs text-gray-500">
+          <div className="mt-4 flex items-center gap-4 text-xs text-muted-foreground">
             <span className="flex items-center gap-1"><Receipt className="w-3 h-3" />{status.invoiceNumber}</span>
             {status.razorpayPaymentId && <span className="flex items-center gap-1"><CreditCard className="w-3 h-3" />{status.razorpayPaymentId}</span>}
           </div>
@@ -418,8 +418,8 @@ function Dashboard({ status, plans, billingHistory, onCancel, onReactivate, onUp
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           {Object.entries(status.features || {}).map(([key, val]) => (
             <div key={key} className="flex items-center gap-2 text-sm">
-              {typeof val === "boolean" ? (val ? <Check className="w-4 h-4 text-green-500" /> : <X className="w-4 h-4 text-gray-300" />) : <Check className="w-4 h-4 text-green-500" />}
-              <span className={typeof val === "boolean" && !val ? "text-gray-400" : ""}>{featureLabels[key] || key}: <span className="font-medium">{formatFeatureValue(key, val)}</span></span>
+              {typeof val === "boolean" ? (val ? <Check className="w-4 h-4 text-green-500" /> : <X className="w-4 h-4 text-muted-foreground/50" />) : <Check className="w-4 h-4 text-green-500" />}
+              <span className={typeof val === "boolean" && !val ? "text-muted-foreground" : ""}>{featureLabels[key] || key}: <span className="font-medium">{formatFeatureValue(key, val)}</span></span>
             </div>
           ))}
         </div>
@@ -428,17 +428,17 @@ function Dashboard({ status, plans, billingHistory, onCancel, onReactivate, onUp
       <div className="rounded-2xl border p-6">
         <button onClick={() => {}} className="flex items-center justify-between w-full">
           <h3 className="font-bold text-lg">Billing History</h3>
-          <span className="text-sm text-gray-500">{billingHistory.length} transaction(s)</span>
+          <span className="text-sm text-muted-foreground">{billingHistory.length} transaction(s)</span>
         </button>
         {billingHistory.length === 0 ? (
-          <p className="text-sm text-gray-400 mt-4">No billing history yet</p>
+          <p className="text-sm text-muted-foreground mt-4">No billing history yet</p>
         ) : (
           <div className="mt-4 space-y-2">
             {billingHistory.map((entry) => (
               <div key={entry._id} className="flex items-center justify-between py-3 border-b last:border-0">
                 <div>
                   <p className="font-medium text-sm">{entry.plan.toUpperCase()} - {CYCLE_LABELS[entry.billingCycle] || entry.billingCycle}</p>
-                  <p className="text-xs text-gray-500">{formatDate(entry.createdAt)}{entry.invoiceNumber ? " | " + entry.invoiceNumber : ""}</p>
+                  <p className="text-xs text-muted-foreground">{formatDate(entry.createdAt)}{entry.invoiceNumber ? " | " + entry.invoiceNumber : ""}</p>
                 </div>
                 <div className="text-right">
                   <p className="font-semibold text-sm">{formatCurrency(entry.amount)}</p>

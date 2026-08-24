@@ -1,32 +1,58 @@
-import Header from "@/components/Header";
+﻿import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
+import MobileHeader from "@/components/mobile/MobileHeader";
+import MobileBottomNav from "@/components/mobile/MobileBottomNav";
 import KeyboardShortcuts from "@/components/KeyboardShortcuts";
 import { Toaster } from "@/components/ui/sonner";
 import "@/styles/globals.css";
 import type { AppProps } from "next/app";
+import Head from "next/head";
 import { useRouter } from "next/router";
+import { ThemeProvider } from "next-themes";
+import { useState } from "react";
 import { UserProvider } from "../lib/AuthContext";
 export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();
   const isMeetPage = router.pathname.startsWith("/meeting");
+  const isWatchPage = router.pathname.startsWith("/watch");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   return (
-    <UserProvider>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+      <UserProvider>
       <KeyboardShortcuts />
-      <div className="min-h-screen bg-white text-black">
+      <div className="min-h-screen bg-background text-foreground">
         <title>Your-Tube Clone</title>
+        <Head>
+          <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1, viewport-fit=cover"
+          />
+        </Head>
         <Toaster />
         {isMeetPage ? (
           <Component {...pageProps} />
         ) : (
           <>
-            <Header />
-            <div className="flex">
-              <Sidebar />
-              <Component {...pageProps} />
+            <div className="hidden lg:block">
+              <Header onMenuToggle={() => setSidebarOpen((o) => !o)} />
             </div>
+            <MobileHeader onMenuToggle={() => setSidebarOpen((o) => !o)} />
+            <div className="flex">
+              <Sidebar
+                open={sidebarOpen}
+                onClose={() => setSidebarOpen(false)}
+                desktopPersistent={!isWatchPage}
+              />
+              <main className="min-w-0 flex-1 pb-20 lg:pb-0">
+                <Component {...pageProps} />
+              </main>
+            </div>
+            <MobileBottomNav />
           </>
         )}
       </div>
     </UserProvider>
+    </ThemeProvider>
   );
 }

@@ -273,7 +273,7 @@ function CallScreen({
       )}
 
       {recorder.recordingUrl && (
-        <div className="absolute right-4 top-4 z-30 w-72 rounded-xl border border-white/10 bg-slate-900 p-3 shadow-xl">
+        <div className="absolute right-4 top-4 z-30 w-72 max-w-[calc(100vw-2rem)] rounded-xl border border-white/10 bg-slate-900 p-3 shadow-xl">
           <p className="mb-2 text-sm font-semibold">Recording ready</p>
           {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
           <video src={recorder.recordingUrl} controls className="mb-2 max-h-36 w-full rounded" />

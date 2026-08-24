@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+﻿import { useEffect, useRef } from "react";
 import {
   Hand,
   Mic,
@@ -73,7 +73,7 @@ export default function ParticipantTile({ participant, stream, isSelf }: Props) 
       {participant.reconnecting && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-slate-900/70 text-white">
           <span className="h-8 w-8 animate-spin rounded-full border-2 border-white border-t-transparent" />
-          <span className="text-sm">Reconnecting…</span>
+          <span className="text-sm">Reconnectingâ€¦</span>
         </div>
       )}
 
@@ -85,7 +85,7 @@ export default function ParticipantTile({ participant, stream, isSelf }: Props) 
           <span className="max-w-[12rem] truncate">
             {participant.name}
             {(participant.isHost || participant.isCohost) && (
-              <span className="ml-1.5 rounded bg-amber-500 px-1 text-[10px] font-bold text-black">
+              <span className="ml-1.5 rounded bg-amber-500 px-1 text-[10px] font-bold text-foreground">
                 {participant.isHost ? "HOST" : "CO-HOST"}
               </span>
             )}

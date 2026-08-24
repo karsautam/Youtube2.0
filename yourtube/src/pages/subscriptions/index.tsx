@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+﻿import React, { useEffect, useState } from "react";
 import { useUser } from "@/lib/AuthContext";
 import axiosInstance from "@/lib/axiosinstance";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -42,7 +42,7 @@ const SubscriptionsPage = () => {
   if (!user) {
     return (
       <main className="flex-1 p-6">
-        <div className="max-w-4xl mx-auto text-center py-20 text-gray-500">
+        <div className="max-w-4xl mx-auto text-center py-20 text-muted-foreground">
           Sign in to see your subscriptions
         </div>
       </main>
@@ -54,9 +54,9 @@ const SubscriptionsPage = () => {
       <div className="max-w-4xl">
         <h1 className="text-2xl font-bold mb-6">Subscriptions</h1>
         {loading ? (
-          <p className="text-gray-500">Loading...</p>
+          <p className="text-muted-foreground">Loading...</p>
         ) : channels.length === 0 ? (
-          <div className="text-center py-20 text-gray-500">
+          <div className="text-center py-20 text-muted-foreground">
             <p className="text-lg mb-2">No subscriptions yet</p>
             <p className="text-sm">Subscribe to channels you enjoy</p>
           </div>
@@ -67,7 +67,7 @@ const SubscriptionsPage = () => {
               .map((channel: any) => (
               <div
                 key={channel._id}
-                className="flex items-center gap-4 p-4 rounded-lg hover:bg-gray-50 transition"
+                className="flex items-center gap-4 p-4 rounded-lg hover:bg-muted transition"
               >
                 <Link href={`/channel/${channel._id}`}>
                   <Avatar className="w-12 h-12 cursor-pointer">
@@ -84,7 +84,7 @@ const SubscriptionsPage = () => {
                     {channel.channelname}
                   </Link>
                   {channel.description && (
-                    <p className="text-sm text-gray-500 line-clamp-1">
+                    <p className="text-sm text-muted-foreground line-clamp-1">
                       {channel.description}
                     </p>
                   )}
@@ -93,7 +93,7 @@ const SubscriptionsPage = () => {
                   variant="outline"
                   size="sm"
                   onClick={() => handleUnsubscribe(channel._id)}
-                  className="text-gray-500"
+                  className="text-muted-foreground"
                 >
                   Subscribed
                 </Button>

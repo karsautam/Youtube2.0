@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
@@ -71,7 +71,7 @@ export default function VideoCard({ video }: any) {
     <Link href={`/watch/${video?._id}`} className="group">
       <div className="space-y-3">
         <div
-          className="relative aspect-video rounded-lg overflow-hidden bg-gray-100"
+          className="relative aspect-video rounded-lg overflow-hidden bg-muted"
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
         >
@@ -80,13 +80,13 @@ export default function VideoCard({ video }: any) {
             <img
               src={thumbnail}
               alt={video?.videotitle}
-              className="object-cover group-hover:scale-105 transition-transform duration-200"
+              className="absolute inset-0 h-full w-full object-cover group-hover:scale-105 transition-transform duration-200"
             />
           ) : (
             src && (
               <video
                 src={src}
-                className="object-cover group-hover:scale-105 transition-transform duration-200"
+                className="absolute inset-0 h-full w-full object-cover group-hover:scale-105 transition-transform duration-200"
               />
             )
           )}
@@ -97,7 +97,7 @@ export default function VideoCard({ video }: any) {
               muted
               loop
               playsInline
-              preload="none"
+              preload="metadata"
               className={cn(
                 "absolute inset-0 h-full w-full object-cover transition-opacity duration-200",
                 hovering ? "opacity-100" : "opacity-0"
@@ -107,9 +107,11 @@ export default function VideoCard({ video }: any) {
               }
             />
           )}
-          <div className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-1 rounded">
-            {formatDuration(duration)}
-          </div>
+          {Number.isFinite(duration) && duration > 0 && (
+            <div className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-1 rounded">
+              {formatDuration(duration)}
+            </div>
+          )}
         </div>
         <div className="flex gap-3">
           <Avatar className="w-9 h-9 flex-shrink-0">
@@ -119,9 +121,9 @@ export default function VideoCard({ video }: any) {
             <h3 className="font-medium text-sm line-clamp-2 group-hover:text-blue-600">
               {video?.videotitle}
             </h3>
-            <p className="text-sm text-gray-600 mt-1">{video?.videochanel}</p>
-            <p className="text-sm text-gray-600">
-              {views.toLocaleString()} views •{" "}
+            <p className="text-sm text-muted-foreground mt-1">{video?.videochanel}</p>
+            <p className="text-sm text-muted-foreground">
+              {views.toLocaleString()} views â€¢{" "}
               {formatDistanceToNow(createdAt)} ago
             </p>
           </div>

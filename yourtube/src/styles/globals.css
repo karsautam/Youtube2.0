@@ -78,13 +78,6 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
@@ -134,10 +127,25 @@ body {
   }
 }
 
+.video-player-root {
+  touch-action: manipulation;
+}
+.video-player-root,
+.video-player-root * {
+  -webkit-tap-highlight-color: transparent;
+}
+
 .video-player-root:fullscreen {
   width: 100%;
   height: 100%;
   aspect-ratio: auto;
   border-radius: 0;
   background: #000;
+}
+
+.scrollbar-none {
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
 }

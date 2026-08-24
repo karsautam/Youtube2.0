@@ -1,5 +1,17 @@
 import video from "../Modals/video.js";
 import history from "../Modals/history.js";
+import videoview from "../Modals/videoview.js";
+
+const registerView = async (videoId, viewerKey) => {
+  const existing = await videoview.findOneAndUpdate(
+    { videoid: videoId, viewerKey },
+    { $setOnInsert: { videoid: videoId, viewerKey } },
+    { upsert: true }
+  );
+  if (existing) return false;
+  await video.findByIdAndUpdate(videoId, { $inc: { views: 1 } });
+  return true;
+};
 
 export const handlehistory = async (req, res) => {
   const { userId } = req.body;
@@ -11,7 +23,7 @@ export const handlehistory = async (req, res) => {
       { $set: { createdAt: new Date() } },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
-    await video.findByIdAndUpdate(videoId, { $inc: { views: 1 } });
+    await registerView(videoId, `user:${userId}`);
     return res.status(200).json({ history: true });
   } catch (error) {
     console.error(" error:", error);
@@ -21,7 +33,12 @@ export const handlehistory = async (req, res) => {
 export const handleview = async (req, res) => {
   const { videoId } = req.params;
   try {
-    await video.findByIdAndUpdate(videoId, { $inc: { views: 1 } });
+    const forwarded = req.headers["x-forwarded-for"];
+    const ip =
+      typeof forwarded === "string" && forwarded.length > 0
+        ? forwarded.split(",")[0].trim()
+        : req.socket?.remoteAddress || "unknown";
+    await registerView(videoId, `ip:${ip}`);
   } catch (error) {
     console.error(" error:", error);
     return res.status(500).json({ message: "Something went wrong" });

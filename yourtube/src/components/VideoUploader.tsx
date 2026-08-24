@@ -1,4 +1,4 @@
-import { Check, FileVideo, Upload, X } from "lucide-react";
+﻿import { Check, FileVideo, Upload, X } from "lucide-react";
 import React, { ChangeEvent, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "./ui/button";
@@ -91,7 +91,7 @@ const VideoUploader = ({
       setUploadProgress(0);
       const res = await axiosInstance.post("/video/upload", formdata, {
          headers: {
-    "Content-Type": "multipart/form-data", // ✅ MUST for FormData
+    "Content-Type": "multipart/form-data", // âœ… MUST for FormData
   },
         onUploadProgress: (progresEvent: any) => {
           const progress = Math.round(
@@ -111,24 +111,24 @@ const VideoUploader = ({
     }
   };
   return (
-    <div className="bg-gray-50 rounded-lg p-6">
+    <div className="bg-muted rounded-lg p-6">
       <h2 className="text-xl font-semibold mb-4">Upload a video</h2>
 
       <div className="space-y-4">
         {!videoFile ? (
           <div
-            className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:bg-gray-100 transition-colors"
+            className="border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:bg-accent transition-colors"
             onClick={() => fileInputRef.current?.click()}
           >
-            <Upload className="w-12 h-12 mx-auto text-gray-400 mb-2" />
+            <Upload className="w-12 h-12 mx-auto text-muted-foreground mb-2" />
             <p className="text-lg font-medium">
               Drag and drop video files to upload
             </p>
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-sm text-muted-foreground mt-1">
               or click to select files
             </p>
-            <p className="text-xs text-gray-400 mt-4">
-              MP4, WebM, MOV or AVI • Up to 2GB
+            <p className="text-xs text-muted-foreground mt-4">
+              MP4, WebM, MOV or AVI â€¢ Up to 2GB
             </p>
             <input
               type="file"
@@ -140,13 +140,13 @@ const VideoUploader = ({
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="flex items-center gap-3 p-3 bg-white rounded-lg border">
+            <div className="flex items-center gap-3 p-3 bg-background rounded-lg border">
               <div className="bg-blue-100 p-2 rounded-md">
                 <FileVideo className="w-6 h-6 text-blue-600" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-medium truncate">{videoFile.name}</p>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-muted-foreground">
                   {(videoFile.size / (1024 * 1024)).toFixed(2)} MB
                 </p>
               </div>
@@ -190,12 +190,12 @@ const VideoUploader = ({
                   {subtitleFiles.map((f, i) => (
                     <span
                       key={`${f.name}-${i}`}
-                      className="flex items-center gap-1 rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-600"
+                      className="flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1 text-xs text-muted-foreground"
                     >
                       {f.name}
                       <button
                         type="button"
-                        className="text-gray-400 hover:text-gray-700"
+                        className="text-muted-foreground hover:text-foreground"
                         onClick={() =>
                           setSubtitleFiles((prev) =>
                             prev.filter((_, j) => j !== i)
@@ -215,7 +215,7 @@ const VideoUploader = ({
                     onChange={handlesubtitlechange}
                   />
                 </div>
-                <p className="mt-1 text-xs text-gray-400">
+                <p className="mt-1 text-xs text-muted-foreground">
                   WebVTT (.vtt) or SubRip (.srt) files
                 </p>
               </div>
