@@ -18,7 +18,7 @@ const storage = multer.diskStorage({
   },
 });
 const filefilter = (req, file, cb) => {
-  if (file.mimetype.startsWith("video/")) {
+  if (file.mimetype.startsWith("video/") || file.mimetype.startsWith("image/")) {
     cb(null, true);
   } else if (
     file.mimetype === "text/vtt" ||

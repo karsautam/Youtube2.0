@@ -22,7 +22,7 @@ export default function MobileHeader({
   };
 
   return (
-    <header className="sticky top-0 z-40 border-b bg-background lg:hidden">
+    <header className="sticky top-0 z-50 border-b bg-background lg:hidden">
       {searchOpen ? (
         <form onSubmit={handleSubmit} className="flex h-14 items-center gap-1 px-2">
           <Button

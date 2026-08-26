@@ -1,4 +1,4 @@
-﻿import { Check, FileVideo, Upload, X } from "lucide-react";
+﻿import { Check, FileVideo, Image, Upload, X } from "lucide-react";
 import React, { ChangeEvent, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "./ui/button";
@@ -21,9 +21,15 @@ const VideoUploader = ({
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoTitle, setVideoTitle] = useState("");
   const [subtitleFiles, setSubtitleFiles] = useState<File[]>([]);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [uploadComplete, setUploadComplete] = useState(false);
+  const [phase, setPhase] = useState<"idle" | "uploading" | "finalizing">("idle");
+  const abortRef = useRef<AbortController | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const subtitleInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
+
   const handlesubtitlechange = (e: ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
@@ -32,10 +38,9 @@ const VideoUploader = ({
       );
       setSubtitleFiles((prev) => [...prev, ...valid]);
     }
-    if (subtitleInputRef.current) {
-      subtitleInputRef.current.value = "";
-    }
+    if (subtitleInputRef.current) subtitleInputRef.current.value = "";
   };
+
   const handlefilechange = (e: ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
@@ -44,72 +49,165 @@ const VideoUploader = ({
         toast.error("Please upload a valid video file.");
         return;
       }
-      if (file.size > 2 * 1024 * 1024 * 1024) {
-        toast.error("File size exceeds 2GB limit.");
-        return;
-      }
       setVideoFile(file);
-      const filename = file.name;
-      if (!videoTitle) {
-        setVideoTitle(filename);
-      }
+      if (!videoTitle) setVideoTitle(file.name.replace(/\.[^.]+$/, ""));
     }
   };
+
+  const handlecoverchange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith("image/")) {
+        toast.error("Please select an image file.");
+        return;
+      }
+      setCoverFile(file);
+      setCoverPreview(URL.createObjectURL(file));
+    }
+    if (coverInputRef.current) coverInputRef.current.value = "";
+  };
+
   const resetForm = () => {
     setVideoFile(null);
     setVideoTitle("");
     setSubtitleFiles([]);
+    setCoverFile(null);
+    setCoverPreview(null);
     setIsUploading(false);
     setUploadProgress(0);
     setUploadComplete(false);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-    if (subtitleInputRef.current) {
-      subtitleInputRef.current.value = "";
-    }
+    setPhase("idle");
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (subtitleInputRef.current) subtitleInputRef.current.value = "";
+    if (coverInputRef.current) coverInputRef.current.value = "";
   };
+
   const cancelUpload = () => {
-    if (isUploading) {
-      toast.error("Your video upload has been cancelled");
+    if (abortRef.current) {
+      abortRef.current.abort();
+      abortRef.current = null;
     }
+    setIsUploading(false);
+    setUploadProgress(0);
+    setPhase("idle");
+    toast.error("Upload cancelled");
   };
+
+  const uploadWithProgress = (
+    url: string,
+    formData: FormData,
+    signal: AbortSignal
+  ): Promise<any> => {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", url, true);
+
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          setUploadProgress(Math.round((e.loaded * 100) / e.total));
+        }
+      };
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            resolve(JSON.parse(xhr.responseText));
+          } catch {
+            reject(new Error("Invalid response from server"));
+          }
+        } else {
+          let msg = "Upload failed";
+          try {
+            const err = JSON.parse(xhr.responseText);
+            msg = err?.error?.message || err?.message || msg;
+          } catch {}
+          reject(new Error(msg));
+        }
+      };
+
+      xhr.onerror = () => reject(new Error("Network error — check your connection and try again"));
+      xhr.onabort = () => reject(new Error("Cancelled"));
+
+      signal.addEventListener("abort", () => xhr.abort());
+      xhr.send(formData);
+    });
+  };
+
   const handleUpload = async () => {
     if (!videoFile || !videoTitle.trim()) {
       toast.error("Please provide file and title");
       return;
     }
-    const formdata = new FormData();
-    formdata.append("file", videoFile);
-    formdata.append("videotitle", videoTitle);
-    formdata.append("videochanel", channelName ?? "");
-    formdata.append("uploader", channelId ?? "");
-    subtitleFiles.forEach((f) => formdata.append("subtitles", f));
-    console.log(formdata)
+    setIsUploading(true);
+    setUploadProgress(0);
+    setPhase("uploading");
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     try {
-      setIsUploading(true);
-      setUploadProgress(0);
-      const res = await axiosInstance.post("/video/upload", formdata, {
-         headers: {
-    "Content-Type": "multipart/form-data", // âœ… MUST for FormData
-  },
-        onUploadProgress: (progresEvent: any) => {
-          const progress = Math.round(
-            (progresEvent.loaded * 100) / progresEvent.total
+      const formData = new FormData();
+      formData.append("file", videoFile);
+      for (const sub of subtitleFiles) {
+        formData.append("subtitles", sub);
+      }
+
+      const backendBase =
+        process.env.NEXT_PUBLIC_BACKEND_URL ||
+        (typeof window !== "undefined"
+          ? `${window.location.protocol}//${window.location.hostname}:5000`
+          : "http://localhost:5000");
+
+      const { secure_url, subtitles } = await uploadWithProgress(
+        `${backendBase}/video/stream-upload`,
+        formData,
+        controller.signal
+      );
+
+      setUploadProgress(100);
+      setPhase("finalizing");
+
+      const filepath = secure_url.startsWith("LOCAL:") ? secure_url.slice(6) : secure_url;
+
+      let thumbnailUrl = "";
+      if (coverFile) {
+        const coverFormData = new FormData();
+        coverFormData.append("cover", coverFile);
+        try {
+          const coverRes = await uploadWithProgress(
+            `${backendBase}/video/upload-cover`,
+            coverFormData,
+            controller.signal
           );
-          setUploadProgress(progress);
-        },
+          thumbnailUrl = coverRes.thumbnail || "";
+        } catch {}
+      }
+
+      await axiosInstance.post("/video/save-direct-upload", {
+        videotitle: videoTitle,
+        videochanel: channelName || "",
+        uploader: channelId || "",
+        filepath,
+        thumbnail: thumbnailUrl,
+        filesize: videoFile.size,
+        qualities: [],
+        subtitles: subtitles || [],
       });
-      toast.success("Upload successfully");
+
+      toast.success("Upload successful");
+      setUploadComplete(true);
       resetForm();
       onUploaded?.();
-    } catch (error) {
-      console.error("Error uploading video:", error);
-      toast.error("There was an error uploading your video. Please try again.");
-    } finally {
+    } catch (error: any) {
+      if (error?.message !== "Cancelled") {
+        console.error("Upload error:", error);
+        toast.error(error?.message || "Upload failed. Please try again.");
+      }
       setIsUploading(false);
+      setUploadProgress(0);
+      setPhase("idle");
     }
   };
+
   return (
     <div className="bg-muted rounded-lg p-6">
       <h2 className="text-xl font-semibold mb-4">Upload a video</h2>
@@ -128,7 +226,7 @@ const VideoUploader = ({
               or click to select files
             </p>
             <p className="text-xs text-muted-foreground mt-4">
-              MP4, WebM, MOV or AVI â€¢ Up to 2GB
+              MP4, WebM, MOV or AVI — Any size
             </p>
             <input
               type="file"
@@ -147,7 +245,7 @@ const VideoUploader = ({
               <div className="flex-1 min-w-0">
                 <p className="font-medium truncate">{videoFile.name}</p>
                 <p className="text-sm text-muted-foreground">
-                  {(videoFile.size / (1024 * 1024)).toFixed(2)} MB
+                  {(videoFile.size / (1024 * 1024)).toFixed(1)} MB
                 </p>
               </div>
               {!isUploading && (
@@ -173,6 +271,45 @@ const VideoUploader = ({
                   disabled={isUploading || uploadComplete}
                   className="mt-1"
                 />
+              </div>
+
+              <div>
+                <Label>Cover image (optional)</Label>
+                <div className="mt-1 flex items-center gap-3">
+                  {coverPreview ? (
+                    <div className="relative w-40 h-24 rounded-lg overflow-hidden border">
+                      <img src={coverPreview} alt="Cover" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        className="absolute top-1 right-1 bg-black/60 rounded-full p-0.5"
+                        onClick={() => { setCoverFile(null); setCoverPreview(null); }}
+                      >
+                        <X className="h-3 w-3 text-white" />
+                      </button>
+                    </div>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      type="button"
+                      onClick={() => coverInputRef.current?.click()}
+                      disabled={isUploading || uploadComplete}
+                    >
+                      <Image className="h-4 w-4 mr-1" />
+                      Add cover
+                    </Button>
+                  )}
+                  <input
+                    type="file"
+                    ref={coverInputRef}
+                    className="hidden"
+                    accept="image/*"
+                    onChange={handlecoverchange}
+                  />
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  JPG, PNG — auto-generated if not provided
+                </p>
               </div>
 
               <div>
@@ -224,7 +361,7 @@ const VideoUploader = ({
             {isUploading && (
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span>Uploading...</span>
+                  <span>{phase === "finalizing" ? "Saving..." : "Uploading..."}</span>
                   <span>{uploadProgress}%</span>
                 </div>
                 <Progress value={uploadProgress} className="h-2" />
@@ -239,9 +376,7 @@ const VideoUploader = ({
                   </Button>
                   <Button
                     onClick={handleUpload}
-                    disabled={
-                      isUploading || !videoTitle.trim() || uploadComplete
-                    }
+                    disabled={isUploading || !videoTitle.trim() || uploadComplete}
                   >
                     {isUploading ? "Uploading..." : "Upload"}
                   </Button>

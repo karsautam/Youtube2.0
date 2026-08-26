@@ -6,6 +6,8 @@ import { Avatar, AvatarFallback } from "./ui/avatar";
 import mediaUrl from "@/lib/mediaUrl";
 import { registerVideo } from "@/lib/video-manager";
 import { cn } from "@/lib/utils";
+import { useMiniPlayer } from "@/lib/MiniPlayerContext";
+import { useRouter } from "next/router";
 
 function formatDuration(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds < 0) return "";
@@ -18,6 +20,8 @@ function formatDuration(seconds: number): string {
 }
 
 export default function VideoCard({ video }: any) {
+  const router = useRouter();
+  const { video: miniVideo, expand, close } = useMiniPlayer();
   const views = typeof video?.views === "number" ? video.views : 0;
   const createdAt = video?.createdAt ? new Date(video.createdAt) : new Date();
   const thumbnail = mediaUrl(video?.thumbnail);
@@ -67,8 +71,23 @@ export default function VideoCard({ video }: any) {
     stopPreview();
   };
 
+  const isSameAsMiniPlayer = miniVideo?.id === video?._id;
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (isSameAsMiniPlayer && miniVideo) {
+      e.preventDefault();
+      expand();
+      router.push(`/watch/${video._id}`);
+      return;
+    }
+    if (miniVideo) {
+      close();
+    }
+    router.push(`/watch/${video._id}`);
+  };
+
   return (
-    <Link href={`/watch/${video?._id}`} className="group">
+    <div className="group cursor-pointer" onClick={handleClick}>
       <div className="space-y-3">
         <div
           className="relative aspect-video rounded-lg overflow-hidden bg-muted"
@@ -114,21 +133,25 @@ export default function VideoCard({ video }: any) {
           )}
         </div>
         <div className="flex gap-3">
-          <Avatar className="w-9 h-9 flex-shrink-0">
-            <AvatarFallback>{video?.videochanel?.[0] || "?"}</AvatarFallback>
-          </Avatar>
+          <Link href={`/channel/${video?.uploader}`} onClick={(e) => e.stopPropagation()}>
+            <Avatar className="w-9 h-9 flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-primary/30">
+              <AvatarFallback>{video?.videochanel?.[0] || "?"}</AvatarFallback>
+            </Avatar>
+          </Link>
           <div className="flex-1 min-w-0">
-            <h3 className="font-medium text-sm line-clamp-2 group-hover:text-blue-600">
+            <h3 className="font-medium text-base line-clamp-2 group-hover:text-blue-600">
               {video?.videotitle}
             </h3>
-            <p className="text-sm text-muted-foreground mt-1">{video?.videochanel}</p>
+            <Link href={`/channel/${video?.uploader}`} onClick={(e) => e.stopPropagation()}>
+              <p className="text-sm text-muted-foreground mt-1 hover:text-foreground cursor-pointer">{video?.videochanel}</p>
+            </Link>
             <p className="text-sm text-muted-foreground">
-              {views.toLocaleString()} views â€¢{" "}
+              {views.toLocaleString()} views &bull;{" "}
               {formatDistanceToNow(createdAt)} ago
             </p>
           </div>
         </div>
       </div>
-    </Link>
+    </div>
   );
 }

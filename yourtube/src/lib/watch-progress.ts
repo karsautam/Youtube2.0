@@ -107,3 +107,16 @@ export async function persistProgress(
     });
   } catch {}
 }
+
+export function clearAllGuestProgress(): void {
+  try {
+    const keys: string[] = [];
+    for (let i = 0; i < window.localStorage.length; i++) {
+      const key = window.localStorage.key(i);
+      if (key && key.startsWith(GUEST_PREFIX)) {
+        keys.push(key);
+      }
+    }
+    keys.forEach((k) => window.localStorage.removeItem(k));
+  } catch {}
+}

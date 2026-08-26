@@ -4,11 +4,21 @@ import { Button } from "./ui/button";
 import { useUser } from "@/lib/AuthContext";
 import axiosInstance from "@/lib/axiosinstance";
 import { toast } from "sonner";
+import { Pencil, Check, X } from "lucide-react";
 
-const ChannelHeader = ({ channel }: any) => {
+const ChannelHeader = ({ channel, onChannelUpdated }: any) => {
   const { user } = useUser();
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [subscriberCount, setSubscriberCount] = useState(0);
+  const [editingName, setEditingName] = useState(false);
+  const [nameValue, setNameValue] = useState(channel?.channelname || "");
+  const [saving, setSaving] = useState(false);
+
+  const isOwner = user?._id && String(user._id) === String(channel?._id);
+
+  useEffect(() => {
+    setNameValue(channel?.channelname || "");
+  }, [channel?.channelname]);
 
   useEffect(() => {
     if (!channel?._id) return;
@@ -43,6 +53,32 @@ const ChannelHeader = ({ channel }: any) => {
     }
   };
 
+  const handleSaveName = async () => {
+    const trimmed = nameValue.trim();
+    if (!trimmed) {
+      toast.error("Channel name cannot be empty");
+      return;
+    }
+    if (trimmed === channel.channelname) {
+      setEditingName(false);
+      return;
+    }
+    setSaving(true);
+    try {
+      await axiosInstance.patch(`/user/update/${channel._id}`, {
+        channelname: trimmed,
+      });
+      toast.success("Channel name updated");
+      setEditingName(false);
+      onChannelUpdated?.();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Failed to update");
+      setNameValue(channel.channelname);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const formatCount = (n: number) => {
     if (n >= 1000000) return (n / 1000000).toFixed(1).replace(/\.0$/, "") + "M";
     if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, "") + "K";
@@ -62,7 +98,51 @@ const ChannelHeader = ({ channel }: any) => {
           </Avatar>
 
           <div className="flex-1 space-y-2">
-            <h1 className="text-2xl md:text-4xl font-bold">{channel?.channelname}</h1>
+            {editingName ? (
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={nameValue}
+                  onChange={(e) => setNameValue(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleSaveName();
+                    if (e.key === "Escape") {
+                      setNameValue(channel.channelname);
+                      setEditingName(false);
+                    }
+                  }}
+                  autoFocus
+                  className="text-2xl md:text-4xl font-bold bg-background border rounded px-2 py-1 outline-none focus:ring-2 focus:ring-primary"
+                />
+                <Button size="icon" variant="ghost" onClick={handleSaveName} disabled={saving}>
+                  <Check className="w-5 h-5 text-green-600" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => {
+                    setNameValue(channel.channelname);
+                    setEditingName(false);
+                  }}
+                >
+                  <X className="w-5 h-5 text-red-600" />
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <h1 className="text-2xl md:text-4xl font-bold">{channel?.channelname}</h1>
+                {isOwner && (
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => setEditingName(true)}
+                    className="h-8 w-8"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </Button>
+                )}
+              </div>
+            )}
             <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
               <span>@{channel?.channelname?.toLowerCase().replace(/\s+/g, "")}</span>
               <span>{formatCount(subscriberCount)} subscribers</span>

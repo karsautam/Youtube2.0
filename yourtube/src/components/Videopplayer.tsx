@@ -32,6 +32,9 @@ import { cn } from "@/lib/utils";
 import mediaUrl from "@/lib/mediaUrl";
 import { registerVideo } from "@/lib/video-manager";
 import { useWatchProgress } from "@/lib/useWatchProgress";
+import { useMiniPlayer } from "@/lib/MiniPlayerContext";
+import { useVideoHistory } from "@/lib/VideoHistoryContext";
+import { useRouter } from "next/router";
 
 const PLAYBACK_SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 
@@ -225,7 +228,25 @@ export default function VideoPlayer({
   nextVideo,
   onAutoplayNavigate,
 }: VideoPlayerProps) {
+  const router = useRouter();
+  const { setVideo, resumePosition } = useMiniPlayer();
+  const { push: pushHistory, updateTop, clear: clearHistory, markSkipPush } = useVideoHistory();
   const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (video?._id) {
+      (window as any).__currentVideoInfo = {
+        id: video._id,
+        title: video.videotitle || "Untitled",
+        channel: video.videochanel || "",
+        thumbnail: video.thumbnail || null,
+        src: video.filepath || "",
+      };
+    }
+    return () => {
+      delete (window as any).__currentVideoInfo;
+    };
+  }, [video?._id, video?.videotitle, video?.videochanel, video?.thumbnail, video?.filepath]);
   const videoRef = useRef<HTMLVideoElement>(null);
   const seekBarRef = useRef<HTMLDivElement>(null);
   const volumeBarRef = useRef<HTMLDivElement>(null);
@@ -501,6 +522,31 @@ export default function VideoPlayer({
     sourceHeightRef.current = null;
     pendingSeekRef.current = null;
   }, [videoId]);
+
+  useEffect(() => {
+    if (!video?._id) return;
+    const handleRouteChange = (url: string) => {
+      if (url.startsWith(`/watch/${video._id}`)) return;
+      if (url === "/" || url === "") {
+        const v = videoRef.current;
+        setVideo({
+          id: video._id!,
+          title: video.videotitle || "Untitled",
+          channel: video.videochanel || "",
+          thumbnail: video.thumbnail || null,
+          src: video.filepath || "",
+          currentTime: v?.currentTime || 0,
+        });
+        clearHistory();
+      } else {
+        setVideo(null);
+      }
+    };
+    router.events.on("routeChangeStart", handleRouteChange);
+    return () => {
+      router.events.off("routeChangeStart", handleRouteChange);
+    };
+  }, [video?._id, setVideo, clearHistory]);
 
   useEffect(() => {
     if (!settingsOpen || !settingsWrapRef.current) return;
@@ -1002,6 +1048,16 @@ export default function VideoPlayer({
           setEnded(false);
           setControlsVisible(true);
           scheduleControlsHide();
+          if (video?._id) {
+            pushHistory({
+              id: video._id,
+              title: video.videotitle || "Untitled",
+              channel: video.videochanel || "",
+              thumbnail: video.thumbnail || null,
+              src: video.filepath || "",
+              currentTime: videoRef.current?.currentTime || 0,
+            });
+          }
         }}
         onPause={() => {
           setPlaying(false);
@@ -1047,8 +1103,14 @@ export default function VideoPlayer({
               resumePlaybackRef.current = false;
               void v.play().catch(() => {});
             }
+          } else if (resumePosition !== null && Number.isFinite(resumePosition)) {
+            const t = Math.max(0, Math.min(resumePosition, v.duration - 0.5));
+            v.currentTime = t;
+            setCurrentTime(t);
+            void v.play().catch(() => {});
+          } else {
+            resumeFromSaved(v);
           }
-          resumeFromSaved(v);
           if (autoPlayOnNavigateRef.current) {
             autoPlayOnNavigateRef.current = false;
             void v.play().catch(() => {});
@@ -1451,13 +1513,11 @@ export default function VideoPlayer({
                       <p className="px-2 pb-1 pt-0.5 text-[10px] font-semibold uppercase tracking-widest text-white/50">
                         Settings
                       </p>
-                      {qualityOptions.length > 1 && (
-                        <SettingsRow
-                          label="Quality"
-                          value={effectiveQualityLabel || undefined}
-                          onClick={() => setSettingsPanel("quality")}
-                        />
-                      )}
+                      <SettingsRow
+                        label="Quality"
+                        value={effectiveQualityLabel || undefined}
+                        onClick={() => setSettingsPanel("quality")}
+                      />
                       <SettingsRow
                         label="Playback speed"
                         value={speed === 1 ? "Normal" : `${speed}×`}

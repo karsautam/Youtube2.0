@@ -80,7 +80,7 @@ function SheetItem({
 
 export default function MobileBottomNav() {
   const router = useRouter();
-  const { user, logout, handlegooglesignin } = useUser();
+  const { user, logout } = useUser();
   const [sheetOpen, setSheetOpen] = useState(false);
 
   useEffect(() => {
@@ -138,10 +138,10 @@ export default function MobileBottomNav() {
               <Button
                 size="sm"
                 className="mt-2 rounded-full"
-                onClick={handlegooglesignin}
+                onClick={() => router.push("/signin")}
               >
                 <User className="mr-1.5 h-4 w-4" />
-                Sign in
+                Log in
               </Button>
             </div>
           )}

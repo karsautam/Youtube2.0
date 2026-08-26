@@ -1,7 +1,5 @@
 ﻿import {
   Home,
-  Compass,
-  PlaySquare,
   Clock,
   ThumbsUp,
   History,
@@ -9,6 +7,8 @@
   Crown,
   Download,
   X,
+  PlaySquare,
+  Zap,
 } from "lucide-react";
 import Link from "next/link";
 import React, { useState } from "react";
@@ -16,153 +16,184 @@ import { Button } from "./ui/button";
 import Channeldialogue from "./channeldialogue";
 import { useUser } from "@/lib/AuthContext";
 import { cn } from "@/lib/utils";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { useRouter } from "next/router";
 
 const NO_HOVER = "transition-all duration-200 hover:bg-accent hover:shadow-sm hover:scale-[1.02] active:bg-accent active:scale-[0.98] active:shadow-inner";
 
 interface SidebarProps {
   open?: boolean;
   onClose?: () => void;
-  desktopPersistent?: boolean;
 }
 
-const Sidebar = ({
-  open = false,
-  onClose,
-  desktopPersistent = true,
-}: SidebarProps) => {
+const Sidebar = ({ open = false, onClose }: SidebarProps) => {
   const { user } = useUser();
-
+  const router = useRouter();
   const [isdialogeopen, setisdialogeopen] = useState(false);
+
+  const isActive = (href: string) =>
+    href === "/" ? router.pathname === "/" : router.pathname.startsWith(href);
+
   return (
     <>
       {open && (
         <div
-          className={cn(
-            "fixed inset-0 bg-black/50 z-30",
-            desktopPersistent && "lg:hidden"
-          )}
+          className="fixed inset-0 bg-black/50 z-30"
           onClick={onClose}
           aria-hidden="true"
         />
       )}
       <aside
         className={cn(
-          "fixed left-0 top-14 bottom-0 z-40 w-64 overflow-y-auto bg-background border-r p-2 transition-transform duration-200 ease-in-out",
-          desktopPersistent &&
-            "lg:static lg:inset-auto lg:z-auto lg:min-h-screen lg:translate-x-0",
+          "fixed left-0 top-23 bottom-0 z-40 w-64 overflow-y-auto bg-background border-r p-2 transition-transform duration-200 ease-in-out",
           open ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <div className="mb-2 flex items-center justify-between lg:hidden">
-          <span className="px-2 text-sm font-semibold text-muted-foreground">Menu</span>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Close menu"
-            onClick={onClose}
-          >
-            <X className="w-5 h-5" />
-          </Button>
-        </div>
+        <div className="mb-1 px-2 pt-2 pb-3" />
         <nav className="space-y-1">
-        <Link href="/">
-          <Button variant="ghost" className={`w-full justify-start ${NO_HOVER}`}>
-            <Home className="w-5 h-5 mr-3" />
-            Home
-          </Button>
-        </Link>
-        <Link href="/explore">
-          <Button variant="ghost" className={`w-full justify-start ${NO_HOVER}`}>
-            <Compass className="w-5 h-5 mr-3" />
-            Explore
-          </Button>
-        </Link>
-        <Link href="/subscriptions">
-          <Button variant="ghost" className={`w-full justify-start ${NO_HOVER}`}>
-            <PlaySquare className="w-5 h-5 mr-3" />
-            Subscriptions
-          </Button>
-        </Link>
+          <Link href="/">
+            <Button
+              variant="ghost"
+              className={cn(
+                `w-full justify-start ${NO_HOVER}`,
+                isActive("/") && "bg-accent font-semibold"
+              )}
+            >
+              <Home className="w-5 h-5 mr-3" />
+              Home
+            </Button>
+          </Link>
+          <Link href="/shorts">
+            <Button
+              variant="ghost"
+              className={cn(
+                `w-full justify-start ${NO_HOVER}`,
+                isActive("/shorts") && "bg-accent font-semibold"
+              )}
+            >
+              <Zap className="w-5 h-5 mr-3" />
+              Shorts
+            </Button>
+          </Link>
+          <Link href="/subscriptions">
+            <Button
+              variant="ghost"
+              className={cn(
+                `w-full justify-start ${NO_HOVER}`,
+                isActive("/subscriptions") && "bg-accent font-semibold"
+              )}
+            >
+              <PlaySquare className="w-5 h-5 mr-3" />
+              Subscriptions
+            </Button>
+          </Link>
 
-        {user && (
-          <>
-            <div className="border-t pt-2 mt-2">
-              <Link href="/downloads">
-                <Button
-                  variant="ghost"
-                  className={`w-full justify-start ${NO_HOVER}`}
-                >
-                  <Download className="w-5 h-5 mr-3" />
-                  Downloads
-                </Button>
-              </Link>
-              <Link href="/history">
-                <Button
-                  variant="ghost"
-                  className={`w-full justify-start ${NO_HOVER}`}
-                >
-                  <History className="w-5 h-5 mr-3" />
-                  History
-                </Button>
-              </Link>
-              <Link href="/liked">
-                <Button
-                  variant="ghost"
-                  className={`w-full justify-start ${NO_HOVER}`}
-                >
-                  <ThumbsUp className="w-5 h-5 mr-3" />
-                  Liked videos
-                </Button>
-              </Link>
-              <Link href="/watch-later">
-                <Button
-                  variant="ghost"
-                  className={`w-full justify-start ${NO_HOVER}`}
-                >
-                  <Clock className="w-5 h-5 mr-3" />
-                  Watch later
-                </Button>
-              </Link>
-              {user?.channelname ? (
-                <Link href={`/channel/${user._id}`}>
+          {user && (
+            <>
+              <div className="border-t pt-2 mt-2">
+                <Link href="/history">
                   <Button
                     variant="ghost"
-                    className={`w-full justify-start ${NO_HOVER}`}
+                    className={cn(
+                      `w-full justify-start ${NO_HOVER}`,
+                      isActive("/history") && "bg-accent font-semibold"
+                    )}
                   >
-                    <User className="w-5 h-5 mr-3" />
-                    Your channel
+                    <History className="w-5 h-5 mr-3" />
+                    History
                   </Button>
                 </Link>
-              ) : (
-                <div className="px-2 py-1.5">
+                <Link href="/liked">
                   <Button
-                    variant="secondary"
-                    size="sm"
-                    className="w-full"
-                    onClick={() => setisdialogeopen(true)}
+                    variant="ghost"
+                    className={cn(
+                      `w-full justify-start ${NO_HOVER}`,
+                      isActive("/liked") && "bg-accent font-semibold"
+                    )}
                   >
-                    Create Channel
+                    <ThumbsUp className="w-5 h-5 mr-3" />
+                    Liked videos
                   </Button>
-                </div>
-              )}
-              <Link href="/subscription">
-                <Button
-                  variant="ghost"
-                  className={`w-full justify-start ${NO_HOVER}`}
-                >
-                  <Crown className="w-5 h-5 mr-3" />
-                  Subscription
-                </Button>
-              </Link>
+                </Link>
+                <Link href="/watch-later">
+                  <Button
+                    variant="ghost"
+                    className={cn(
+                      `w-full justify-start ${NO_HOVER}`,
+                      isActive("/watch-later") && "bg-accent font-semibold"
+                    )}
+                  >
+                    <Clock className="w-5 h-5 mr-3" />
+                    Watch later
+                  </Button>
+                </Link>
+                <Link href="/downloads">
+                  <Button
+                    variant="ghost"
+                    className={cn(
+                      `w-full justify-start ${NO_HOVER}`,
+                      isActive("/downloads") && "bg-accent font-semibold"
+                    )}
+                  >
+                    <Download className="w-5 h-5 mr-3" />
+                    Downloads
+                  </Button>
+                </Link>
+              </div>
+              <div className="border-t pt-2 mt-2">
+                {user?.channelname ? (
+                  <Link href={`/channel/${user._id}`}>
+                    <Button
+                      variant="ghost"
+                      className={cn(
+                        `w-full justify-start ${NO_HOVER}`,
+                        isActive("/channel") && "bg-accent font-semibold"
+                      )}
+                    >
+                      <User className="w-5 h-5 mr-3" />
+                      Your channel
+                    </Button>
+                  </Link>
+                ) : (
+                  <div className="px-2 py-1.5">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => setisdialogeopen(true)}
+                    >
+                      Create Channel
+                    </Button>
+                  </div>
+                )}
+                <Link href="/subscription">
+                  <Button
+                    variant="ghost"
+                    className={cn(
+                      `w-full justify-start ${NO_HOVER}`,
+                      isActive("/subscription") && "bg-accent font-semibold"
+                    )}
+                  >
+                    <Crown className="w-5 h-5 mr-3" />
+                    Membership
+                  </Button>
+                </Link>
+              </div>
+            </>
+          )}
+          {!user && (
+            <div className="border-t pt-2 mt-2 px-2">
+              <p className="text-sm text-muted-foreground mb-2">
+                Sign in to like videos, comment, and subscribe.
+              </p>
             </div>
-          </>
-        )}
-      </nav>
-      <Channeldialogue
-        isopen={isdialogeopen}
-        onclose={() => setisdialogeopen(false)}
-        mode="create"
-      />
+          )}
+        </nav>
+        <Channeldialogue
+          isopen={isdialogeopen}
+          onclose={() => setisdialogeopen(false)}
+          mode="create"
+        />
       </aside>
     </>
   );

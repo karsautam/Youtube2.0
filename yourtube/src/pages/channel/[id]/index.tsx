@@ -71,6 +71,16 @@ const index = () => {
     community: (
       <div className="text-center py-12 text-muted-foreground">No posts yet.</div>
     ),
+    upload: isOwner ? (
+      <VideoUploader
+        channelId={typeof id === "string" ? id : undefined}
+        channelName={channel?.channelname}
+        onUploaded={() => {
+          fetchVideos();
+          setActiveTab("videos");
+        }}
+      />
+    ) : null,
     about: (
       <div className="py-8 max-w-2xl">
         <h2 className="text-lg font-semibold mb-2">About</h2>
@@ -84,27 +94,12 @@ const index = () => {
   return (
     <div className="flex-1 min-h-screen bg-background">
       <div className="max-w-full mx-auto">
-        <ChannelHeader channel={channel} />
-        <Channeltabs activeTab={activeTab} onTabChange={setActiveTab} />
+        <ChannelHeader channel={channel} onChannelUpdated={() => {
+          axiosInstance.get("/user/" + id).then((res) => setChannel(res.data));
+        }} />
+        <Channeltabs activeTab={activeTab} onTabChange={setActiveTab} isOwner={isOwner} />
         <div className="px-4 pb-8 pt-6">
-          {activeTab === "upload" ? (
-            isOwner ? (
-              <VideoUploader
-                channelId={typeof id === "string" ? id : undefined}
-                channelName={channel?.channelname}
-                onUploaded={() => {
-                  fetchVideos();
-                  setActiveTab("videos");
-                }}
-              />
-            ) : (
-              <div className="text-center py-12 text-muted-foreground">
-                Only the channel owner can upload videos.
-              </div>
-            )
-          ) : (
-            tabs[activeTab] ?? tabs.videos
-          )}
+          {tabs[activeTab] ?? tabs.videos}
         </div>
       </div>
     </div>

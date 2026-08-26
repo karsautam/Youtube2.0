@@ -2,6 +2,9 @@ import {
   onAuthStateChanged,
   signInWithPopup,
   signInWithRedirect,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  updateProfile,
   signOut,
 } from "firebase/auth";
 import { useState } from "react";
@@ -47,7 +50,6 @@ export const UserProvider = ({ children }) => {
   const handlegooglesignin = async () => {
     try {
       if (isMobileDevice()) {
-        // Popups are commonly blocked on mobile / in-app browsers.
         await signInWithRedirect(auth, provider);
         return;
       }
@@ -66,8 +68,22 @@ export const UserProvider = ({ children }) => {
         }
       }
       console.error(error);
+      throw error;
     }
   };
+
+  const handleEmailLogin = async (email, password) => {
+    const result = await signInWithEmailAndPassword(auth, email, password);
+    await syncBackendUser(result.user);
+  };
+
+  const handleEmailSignup = async (name, email, password) => {
+    const result = await createUserWithEmailAndPassword(auth, email, password);
+    const displayName = name || email.split("@")[0];
+    await updateProfile(result.user, { displayName });
+    await syncBackendUser(result.user);
+  };
+
   useEffect(() => {
     const unsubcribe = onAuthStateChanged(auth, async (firebaseuser) => {
       if (firebaseuser) {
@@ -83,7 +99,16 @@ export const UserProvider = ({ children }) => {
   }, []);
 
   return (
-    <UserContext.Provider value={{ user, login, logout, handlegooglesignin }}>
+    <UserContext.Provider
+      value={{
+        user,
+        login,
+        logout,
+        handlegooglesignin,
+        handleEmailLogin,
+        handleEmailSignup,
+      }}
+    >
       {children}
     </UserContext.Provider>
   );

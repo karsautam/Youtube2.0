@@ -22,8 +22,8 @@ import initMeetingSocket from "./socket/meeting.js";
 dotenv.config();
 const app = express();
 app.use(cors());
-app.use(express.json({ limit: "30mb", extended: true }));
-app.use(express.urlencoded({ limit: "30mb", extended: true }));
+app.use(express.json({ limit: "100mb", extended: true }));
+app.use(express.urlencoded({ limit: "100mb", extended: true }));
 app.use("/uploads", express.static("uploads"));
 app.post("/subscription/webhook", express.raw({ type: "application/json" }), webhookHandler);
 app.get("/", (req, res) => {
@@ -53,8 +53,8 @@ initMeetingSocket(io);
 
 httpServer.listen(PORT,"0.0.0.0", () => {
   console.log(`server running on port ${PORT}`);
-  setInterval(autoExpireSubscriptions(), 60 * 60 * 1000);
-  autoExpireSubscriptions()();
+  setInterval(autoExpireSubscriptions, 60 * 60 * 1000);
+  autoExpireSubscriptions();
 });
 
 const DBURL = process.env.DB_URL;

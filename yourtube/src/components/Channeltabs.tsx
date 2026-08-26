@@ -1,6 +1,6 @@
 ﻿import React from "react";
 import { Button } from "./ui/button";
-const tabs = [
+const allTabs = [
   { id: "home", label: "Home" },
   { id: "videos", label: "Videos" },
   { id: "shorts", label: "Shorts" },
@@ -12,8 +12,10 @@ const tabs = [
 interface ChanneltabsProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
+  isOwner?: boolean;
 }
-const Channeltabs = ({ activeTab, onTabChange }: ChanneltabsProps) => {
+const Channeltabs = ({ activeTab, onTabChange, isOwner }: ChanneltabsProps) => {
+  const tabs = isOwner ? allTabs : allTabs.filter((t) => t.id !== "upload");
   return (
     <div className="border-b px-4">
       <div className="flex gap-8 overflow-x-auto">

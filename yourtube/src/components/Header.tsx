@@ -25,7 +25,7 @@ import { useRouter } from "next/router";
 import { useUser } from "@/lib/AuthContext";
 
 const Header = ({ onMenuToggle }: { onMenuToggle?: () => void }) => {
-  const { user, logout, handlegooglesignin } = useUser();
+  const { user, logout } = useUser();
   const [searchQuery, setSearchQuery] = useState("");
   const [isdialogeopen, setisdialogeopen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
@@ -42,7 +42,7 @@ const Header = ({ onMenuToggle }: { onMenuToggle?: () => void }) => {
     }
   };
   return (
-    <header className="sticky top-0 z-40 flex items-center px-2 py-2 bg-background border-b sm:px-4">
+    <header className="sticky top-9 z-50 flex items-center px-2 py-2 bg-background border-b sm:px-4">
       {mobileSearchOpen ? (
         <form
           onSubmit={handleSearch}
@@ -138,17 +138,6 @@ const Header = ({ onMenuToggle }: { onMenuToggle?: () => void }) => {
                   variant="ghost"
                   size="icon"
                   asChild
-                  title="Upload video"
-                  className="transition-all duration-200 hover:bg-accent hover:shadow-sm hover:scale-110 active:bg-accent active:scale-95 active:shadow-inner"
-                >
-                  <Link href="/upload">
-                    <Upload className="w-5 h-5 sm:w-6 sm:h-6" />
-                  </Link>
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  asChild
                   title="Video meeting"
                   className="hidden transition-all duration-200 hover:bg-accent hover:shadow-sm hover:scale-110 active:bg-accent active:scale-95 active:shadow-inner sm:inline-flex"
                 >
@@ -221,10 +210,10 @@ const Header = ({ onMenuToggle }: { onMenuToggle?: () => void }) => {
           <>
             <Button
               className="flex items-center gap-2"
-              onClick={handlegooglesignin}
+              onClick={() => router.push("/signin")}
             >
               <User className="w-4 h-4" />
-              Sign in
+              Log in
             </Button>
           </>
         )}{" "}

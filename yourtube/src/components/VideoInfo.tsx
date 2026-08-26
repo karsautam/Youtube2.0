@@ -7,10 +7,13 @@ import {
   Download,
   Lock,
   MoreHorizontal,
+  Pencil,
   Share,
   ThumbsDown,
   ThumbsUp,
   Trash2,
+  Check,
+  X,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import {
@@ -22,8 +25,10 @@ import {
 import { useUser } from "@/lib/AuthContext";
 import axiosInstance from "@/lib/axiosinstance";
 import { toast } from "sonner";
+import { useRouter } from "next/router";
 
 const VideoInfo = ({ video }: any) => {
+  const router = useRouter();
   const [likes, setlikes] = useState(video.Like || 0);
   const [dislikes, setDislikes] = useState(video.Dislike || 0);
   const [isLiked, setIsLiked] = useState(false);
@@ -45,25 +50,33 @@ const VideoInfo = ({ video }: any) => {
   };
   const TIER_NAME = ["Free", "Bronze", "Silver", "Gold"];
 
+  const ALL_QUALITIES = [
+    { label: "1080p", value: "1080", height: 1080 },
+    { label: "720p", value: "720", height: 720 },
+    { label: "480p", value: "480", height: 480 },
+    { label: "360p", value: "360", height: 360 },
+    { label: "240p", value: "240", height: 240 },
+  ];
+
   const qualityChoices = React.useMemo(() => {
-    const qualities = (video?.qualities || []) as Array<{
+    const available = (video?.qualities || []) as Array<{
       height: number;
       filepath: string;
     }>;
-    const maxHeight = qualities.length
-      ? Math.max(...qualities.map((q) => q.height || 0))
+    const availableMap = new Map(available.map((q) => [q.height, q.filepath]));
+    const maxHeight = available.length
+      ? Math.max(...available.map((q) => q.height || 0))
       : null;
-    const choices: Array<{ label: string; value: string; height: number | null }> =
-      [{ label: "Original", value: "original", height: maxHeight }];
-    [...qualities]
-      .sort((a, b) => b.height - a.height)
-      .forEach((q) =>
-        choices.push({
-          label: `${q.height}p`,
-          value: String(q.height),
-          height: q.height,
-        })
-      );
+    const choices: Array<{ label: string; value: string; height: number | null; filepath: string | null }> =
+      [{ label: "Original", value: "original", height: maxHeight, filepath: null }];
+    ALL_QUALITIES.forEach((q) =>
+      choices.push({
+        label: q.label,
+        value: q.value,
+        height: q.height,
+        filepath: availableMap.get(q.height) || null,
+      })
+    );
     return choices;
   }, [video?.qualities]);
 
@@ -76,6 +89,51 @@ const VideoInfo = ({ video }: any) => {
   };
 
   const channelOwnerId = video.uploader;
+  const isOwner = user?._id && String(user._id) === String(channelOwnerId);
+
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleValue, setTitleValue] = useState(video.videotitle || "");
+  const [titleSaving, setTitleSaving] = useState(false);
+
+  const handleSaveTitle = async () => {
+    const trimmed = titleValue.trim();
+    if (!trimmed) {
+      toast.error("Title cannot be empty");
+      return;
+    }
+    if (trimmed === video.videotitle) {
+      setEditingTitle(false);
+      return;
+    }
+    setTitleSaving(true);
+    try {
+      await axiosInstance.patch(`/video/update/${video._id}`, {
+        userId: user._id,
+        videotitle: trimmed,
+      });
+      toast.success("Title updated");
+      setEditingTitle(false);
+      video.videotitle = trimmed;
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Failed to update title");
+      setTitleValue(video.videotitle);
+    } finally {
+      setTitleSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!confirm("Are you sure you want to delete this video?")) return;
+    try {
+      await axiosInstance.delete(`/video/delete/${video._id}`, {
+        data: { userId: user._id },
+      });
+      toast.success("Video deleted");
+      router.push("/");
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Failed to delete video");
+    }
+  };
 
   useEffect(() => {
     setlikes(video.Like || 0);
@@ -260,9 +318,54 @@ const VideoInfo = ({ video }: any) => {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-base font-semibold leading-snug sm:text-xl">
-        {video.videotitle}
-      </h1>
+      {editingTitle ? (
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            value={titleValue}
+            onChange={(e) => setTitleValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleSaveTitle();
+              if (e.key === "Escape") {
+                setTitleValue(video.videotitle);
+                setEditingTitle(false);
+              }
+            }}
+            autoFocus
+            className="text-base font-semibold leading-snug sm:text-xl bg-background border rounded px-2 py-1 flex-1 outline-none focus:ring-2 focus:ring-primary"
+          />
+          <Button size="icon" variant="ghost" onClick={handleSaveTitle} disabled={titleSaving} className="h-8 w-8 shrink-0">
+            <Check className="w-4 h-4 text-green-600" />
+          </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={() => {
+              setTitleValue(video.videotitle);
+              setEditingTitle(false);
+            }}
+            className="h-8 w-8 shrink-0"
+          >
+            <X className="w-4 h-4 text-red-600" />
+          </Button>
+        </div>
+      ) : (
+        <div className="flex items-start gap-2">
+          <h1 className="text-base font-semibold leading-snug sm:text-xl flex-1">
+            {video.videotitle}
+          </h1>
+          {isOwner && (
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => setEditingTitle(true)}
+              className="h-8 w-8 shrink-0 mt-0.5"
+            >
+              <Pencil className="w-4 h-4" />
+            </Button>
+          )}
+        </div>
+      )}
 
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-3">
@@ -330,38 +433,24 @@ const VideoInfo = ({ video }: any) => {
             <Share className="w-4 h-4 mr-1.5 sm:w-5 sm:h-5" />
             Share
           </Button>
-          {isDownloaded ? (
-            <DropdownMenu>
+          <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="shrink-0 bg-muted rounded-full px-2.5 text-green-700 sm:px-3"
+                  className={`shrink-0 bg-muted rounded-full px-2.5 sm:px-3 ${isDownloaded ? "text-green-700" : ""}`}
                 >
-                  <CheckCircle className="w-4 h-4 mr-1.5 fill-green-100 sm:w-5 sm:h-5" />
-                  Downloaded
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  onClick={removeFromDownloads}
-                  className="text-red-600 focus:text-red-600"
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Remove from downloads
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="shrink-0 bg-muted rounded-full px-2.5 sm:px-3"
-                >
-                  <Download className="w-4 h-4 mr-1.5 sm:w-5 sm:h-5" />
-                  Download
+                  {isDownloaded ? (
+                    <>
+                      <CheckCircle className="w-4 h-4 mr-1.5 fill-green-100 sm:w-5 sm:h-5" />
+                      Downloaded
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-4 h-4 mr-1.5 sm:w-5 sm:h-5" />
+                      Download
+                    </>
+                  )}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="min-w-[190px]">
@@ -392,9 +481,20 @@ const VideoInfo = ({ video }: any) => {
                     </DropdownMenuItem>
                   );
                 })}
+                {isDownloaded && (
+                  <>
+                    <div className="my-1 border-t" />
+                    <DropdownMenuItem
+                      onClick={removeFromDownloads}
+                      className="text-red-600 focus:text-red-600"
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Remove from downloads
+                    </DropdownMenuItem>
+                  </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
-          )}
           <Button
             variant="ghost"
             size="sm"
@@ -480,6 +580,19 @@ const VideoInfo = ({ video }: any) => {
               >
                 <Trash2 className="w-5 h-5" />
                 Remove from downloads
+              </button>
+            )}
+            {isOwner && (
+              <button
+                type="button"
+                className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 active:bg-red-100"
+                onClick={() => {
+                  setMoreOpen(false);
+                  handleDelete();
+                }}
+              >
+                <Trash2 className="w-5 h-5" />
+                Delete video
               </button>
             )}
             <div className="my-1 border-t" />
