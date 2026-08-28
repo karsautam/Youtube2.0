@@ -1,16 +1,21 @@
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useState, type FormEvent } from "react";
-import { ArrowLeft, Bell, Menu, Search } from "lucide-react";
+import { ArrowLeft, Bell, Menu, Search, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useUser } from "@/lib/AuthContext";
 
 export default function MobileHeader({
   onMenuToggle,
+  onAccountOpen,
 }: {
   onMenuToggle?: () => void;
+  onAccountOpen?: () => void;
 }) {
   const router = useRouter();
+  const { user } = useUser();
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
 
@@ -79,6 +84,27 @@ export default function MobileHeader({
             </Button>
             <Button variant="ghost" size="icon" aria-label="Notifications">
               <Bell className="h-[22px] w-[22px]" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Your profile"
+              onClick={() => {
+                if (user) {
+                  router.push(`/channel/${user._id}`);
+                } else {
+                  onAccountOpen?.();
+                }
+              }}
+            >
+              {user ? (
+                <Avatar className="h-7 w-7">
+                  <AvatarImage src={user.image} />
+                  <AvatarFallback>{user.name?.[0] || "U"}</AvatarFallback>
+                </Avatar>
+              ) : (
+                <User className="h-[22px] w-[22px]" />
+              )}
             </Button>
           </div>
         </div>

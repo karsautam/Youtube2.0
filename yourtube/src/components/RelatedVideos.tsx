@@ -23,7 +23,7 @@ export default function RelatedVideos({ videos }: RelatedVideosProps) {
           href={`/watch/${video._id}`}
           className="flex gap-2 group"
         >
-          <div className="relative w-36 aspect-video bg-muted rounded overflow-hidden flex-shrink-0 sm:w-44 lg:w-46 xl:w-52">
+          <div className="relative w-40 aspect-[16/7] bg-muted rounded overflow-hidden flex-shrink-0 sm:w-44 lg:w-48">
             {video.thumbnail ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -39,7 +39,7 @@ export default function RelatedVideos({ videos }: RelatedVideosProps) {
             )}
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="font-medium text-sm lg:text-[15px] line-clamp-2 group-hover:text-blue-600">
+            <h3 className="font-medium text-sm lg:text-[15px] group-hover:text-blue-600 break-words">
               {video.videotitle}
             </h3>
             <p className="text-xs text-muted-foreground mt-1">{video.videochanel}</p>

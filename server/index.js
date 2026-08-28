@@ -16,6 +16,7 @@ import meetingroutes from "./routes/meeting.js";
 import subscriptionroutes, { webhookHandler } from "./routes/subscription.js";
 import channelfollowroutes from "./routes/channelFollow.js";
 import downloadroutes from "./routes/download.js";
+import otproutes from "./routes/otp.js";
 import { autoExpireSubscriptions } from "./controllers/subscription.js";
 import initMeetingSocket from "./socket/meeting.js";
 
@@ -41,6 +42,7 @@ app.use("/meet", meetingroutes);
 app.use("/subscription", subscriptionroutes);
 app.use("/channelfollow", channelfollowroutes);
 app.use("/download", downloadroutes);
+app.use("/otp", otproutes);
 
 const PORT = process.env.PORT || 5000;
 

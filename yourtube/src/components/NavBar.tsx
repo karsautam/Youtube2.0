@@ -2,11 +2,13 @@ import { useRouter } from "next/router";
 import { ArrowLeft, ArrowRight, RotateCw } from "lucide-react";
 import { useMiniPlayer } from "@/lib/MiniPlayerContext";
 import { useVideoHistory } from "@/lib/VideoHistoryContext";
-import { clearAllGuestProgress } from "@/lib/watch-progress";
+import { useUser } from "@/lib/AuthContext";
+import { clearAllProgress } from "@/lib/watch-progress";
 
 export default function NavBar() {
   const router = useRouter();
   const { setVideo } = useMiniPlayer();
+  const { user } = useUser();
   const { pop, peek, size, clear, updateTop } = useVideoHistory();
 
   const handleBack = () => {
@@ -55,12 +57,12 @@ export default function NavBar() {
         <ArrowRight className="w-4 h-4" />
       </button>
       <button
-        onClick={() => {
-          clearAllGuestProgress();
+        onClick={async () => {
+          await clearAllProgress(user?._id);
           router.reload();
         }}
-        className="flex items-center justify-center w-8 h-8 rounded-full hover:bg-accent text-muted-foreground transition-colors"
-        title="Reload"
+        className="flex items-center justify-center w-8 h-8 rounded-full hover:bg-accent text-muted-foreground transition-transform duration-200 hover:rotate-180"
+        title="Reload (clears resume progress)"
       >
         <RotateCw className="w-4 h-4" />
       </button>

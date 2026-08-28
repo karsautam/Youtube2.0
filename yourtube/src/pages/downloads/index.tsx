@@ -1,13 +1,18 @@
 ﻿import { useUser } from "@/lib/AuthContext";
 import axiosInstance from "@/lib/axiosinstance";
 import mediaUrl from "@/lib/mediaUrl";
-import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
-import { Trash2 } from "lucide-react";
+import { MoreVertical, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 function formatSize(bytes: number): string {
   if (!bytes || bytes <= 0) return "â€”";
@@ -57,7 +62,6 @@ const Downloads = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
       <div className="max-w-4xl mx-auto p-6">
         <h1 className="text-2xl font-semibold mb-6">Downloads</h1>
 
@@ -74,13 +78,13 @@ const Downloads = () => {
               return (
                 <div
                   key={d._id}
-                  className="flex gap-3 items-center border rounded-lg p-3 hover:bg-muted transition-colors"
+                  className="group flex flex-col gap-2 border rounded-lg p-3 hover:bg-muted transition-colors sm:flex-row sm:items-center sm:gap-3"
                 >
                   <Link
                     href={`/watch/${v._id}`}
-                    className="flex gap-3 items-center flex-1 min-w-0"
+                    className="flex-shrink-0"
                   >
-                    <div className="w-36 aspect-video bg-muted rounded overflow-hidden flex-shrink-0">
+                    <div className="w-full aspect-video bg-muted rounded overflow-hidden sm:w-36">
                       {v.thumbnail && (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
@@ -90,10 +94,14 @@ const Downloads = () => {
                         />
                       )}
                     </div>
+                  </Link>
+                  <div className="flex items-start gap-2 flex-1 min-w-0">
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-sm line-clamp-1">
-                        {v.videotitle}
-                      </h3>
+                      <Link href={`/watch/${v._id}`}>
+                        <h3 className="font-medium text-sm line-clamp-none sm:line-clamp-1">
+                          {v.videotitle}
+                        </h3>
+                      </Link>
                       <p className="text-xs text-muted-foreground mt-0.5">
                         Downloaded{" "}
                         {format(new Date(d.createdAt), "dd MMM yyyy, hh:mm a")}
@@ -109,25 +117,27 @@ const Downloads = () => {
                         </span>
                       </div>
                     </div>
-                  </Link>
-                  <span
-                    className={`px-2 py-0.5 rounded-full border text-xs flex-shrink-0 ${
-                      d.status === "completed"
-                        ? "border-green-300 text-green-700"
-                        : "border-red-300 text-red-600"
-                    }`}
-                  >
-                    {d.status}
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    title="Delete from downloads"
-                    className="flex-shrink-0 hover:bg-red-50 hover:text-red-600"
-                    onClick={() => handleDelete(String(v._id))}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="Remove from downloads"
+                          className="flex-shrink-0 hover:bg-red-50 hover:text-red-600 sm:opacity-0 sm:group-hover:opacity-100"
+                        >
+                          <MoreVertical className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={() => handleDelete(String(v._id))}
+                        >
+                          <Trash2 className="w-4 h-4 mr-2 text-red-600" />
+                          Remove from downloads
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </div>
               );
             })}

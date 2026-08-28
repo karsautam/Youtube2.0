@@ -2,6 +2,7 @@ import {
   onAuthStateChanged,
   signInWithPopup,
   signInWithRedirect,
+  getRedirectResult,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   updateProfile,
@@ -83,6 +84,24 @@ export const UserProvider = ({ children }) => {
     await updateProfile(result.user, { displayName });
     await syncBackendUser(result.user);
   };
+
+  useEffect(() => {
+    let active = true;
+    getRedirectResult(auth)
+      .then((result) => {
+        if (!active) return;
+        if (result && result.user) {
+          return syncBackendUser(result.user);
+        }
+      })
+      .catch((error) => {
+        console.error("getRedirectResult error:", error?.code, error?.message);
+      });
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const unsubcribe = onAuthStateChanged(auth, async (firebaseuser) => {

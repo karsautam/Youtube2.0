@@ -6,6 +6,7 @@ import MobileBottomNav from "@/components/mobile/MobileBottomNav";
 import KeyboardShortcuts from "@/components/KeyboardShortcuts";
 import NavBar from "@/components/NavBar";
 import MiniPlayer from "@/components/MiniPlayer";
+import HistoryGuard from "@/components/HistoryGuard";
 import { MiniPlayerProvider } from "@/lib/MiniPlayerContext";
 import { VideoHistoryProvider } from "@/lib/VideoHistoryContext";
 import { Toaster } from "@/components/ui/sonner";
@@ -21,6 +22,7 @@ export default function App({ Component, pageProps }: AppProps) {
   const isMeetPage = router.pathname.startsWith("/meeting");
   const isWatchPage = router.pathname.startsWith("/watch");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [accountSheetOpen, setAccountSheetOpen] = useState(false);
 
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
@@ -37,15 +39,19 @@ export default function App({ Component, pageProps }: AppProps) {
           />
         </Head>
         <Toaster />
+        <HistoryGuard />
         {isMeetPage ? (
           <Component {...pageProps} />
         ) : (
           <>
-            <div className="hidden lg:block">
+            <div className="hidden lg:block sticky top-0 z-50">
               <NavBar />
               <Header onMenuToggle={() => setSidebarOpen((o) => !o)} />
             </div>
-            <MobileHeader onMenuToggle={() => setSidebarOpen((o) => !o)} />
+            <MobileHeader
+              onMenuToggle={() => setSidebarOpen((o) => !o)}
+              onAccountOpen={() => setAccountSheetOpen(true)}
+            />
             {!isWatchPage && <NarrowSidebar />}
             <div className="flex">
               {!isWatchPage && <div className="hidden lg:block w-[72px] shrink-0" />}
@@ -57,7 +63,10 @@ export default function App({ Component, pageProps }: AppProps) {
                 <Component {...pageProps} />
               </main>
             </div>
-            <MobileBottomNav />
+            <MobileBottomNav
+              accountOpen={accountSheetOpen}
+              onAccountOpen={setAccountSheetOpen}
+            />
           </>
         )}
         <MiniPlayer />

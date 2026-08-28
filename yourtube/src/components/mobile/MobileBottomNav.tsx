@@ -1,6 +1,6 @@
 ﻿import Link from "next/link";
 import { useRouter } from "next/router";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import {
   Clock,
   Compass,
@@ -78,22 +78,28 @@ function SheetItem({
   );
 }
 
-export default function MobileBottomNav() {
+export default function MobileBottomNav({
+  accountOpen,
+  onAccountOpen,
+}: {
+  accountOpen: boolean;
+  onAccountOpen: (open: boolean) => void;
+}) {
   const router = useRouter();
   const { user, logout } = useUser();
-  const [sheetOpen, setSheetOpen] = useState(false);
 
   useEffect(() => {
-    const close = () => setSheetOpen(false);
+    const close = () => onAccountOpen(false);
     router.events.on("routeChangeComplete", close);
     return () => {
       router.events.off("routeChangeComplete", close);
     };
-  }, [router]);
+  }, [router, onAccountOpen]);
 
   const isHome = router.pathname === "/";
   const isShorts = router.pathname.startsWith("/shorts");
   const isSubscriptions = router.pathname.startsWith("/subscriptions");
+  const hideBottomBar = router.pathname.startsWith("/downloads");
 
   return (
     <>
@@ -101,9 +107,9 @@ export default function MobileBottomNav() {
       <div
         className={cn(
           "fixed inset-0 z-50 bg-black/50 transition-opacity duration-200 lg:hidden",
-          sheetOpen ? "opacity-100" : "pointer-events-none opacity-0"
+          accountOpen ? "opacity-100" : "pointer-events-none opacity-0"
         )}
-        onClick={() => setSheetOpen(false)}
+        onClick={() => onAccountOpen(false)}
         aria-hidden="true"
       />
 
@@ -111,7 +117,7 @@ export default function MobileBottomNav() {
       <aside
         className={cn(
           "fixed inset-y-0 right-0 z-50 flex w-80 max-w-[85vw] flex-col bg-background shadow-2xl transition-transform duration-200 ease-out lg:hidden",
-          sheetOpen ? "translate-x-0" : "translate-x-full"
+          accountOpen ? "translate-x-0" : "translate-x-full"
         )}
       >
         <div className="flex items-center gap-3 border-b px-4 py-4">
@@ -149,7 +155,7 @@ export default function MobileBottomNav() {
             variant="ghost"
             size="icon"
             aria-label="Close menu"
-            onClick={() => setSheetOpen(false)}
+            onClick={() => onAccountOpen(false)}
           >
             <X className="h-5 w-5" />
           </Button>
@@ -199,6 +205,7 @@ export default function MobileBottomNav() {
       </aside>
 
       {/* Bottom navigation */}
+      {!hideBottomBar && (
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t bg-background pb-[env(safe-area-inset-bottom)] lg:hidden">
         <div className="relative grid h-16 grid-cols-5 items-stretch">
           <NavButton
@@ -230,7 +237,7 @@ export default function MobileBottomNav() {
           />
           <button
             type="button"
-            onClick={() => setSheetOpen(true)}
+            onClick={() => onAccountOpen(true)}
             className="flex h-full flex-col items-center justify-center gap-0.5 px-1 transition-colors active:bg-accent"
           >
             {user ? (
@@ -255,6 +262,7 @@ export default function MobileBottomNav() {
           </button>
         </div>
       </nav>
+      )}
     </>
   );
 }

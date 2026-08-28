@@ -5,27 +5,19 @@
   Mic,
   Search,
   User,
-  Upload,
   VideoIcon,
 } from "lucide-react";
 import React, { useState } from "react";
 import { Button } from "./ui/button";
 import Link from "next/link";
 import { Input } from "./ui/input";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import Channeldialogue from "./channeldialogue";
 import { useRouter } from "next/router";
 import { useUser } from "@/lib/AuthContext";
 
 const Header = ({ onMenuToggle }: { onMenuToggle?: () => void }) => {
-  const { user, logout } = useUser();
+  const { user } = useUser();
   const [searchQuery, setSearchQuery] = useState("");
   const [isdialogeopen, setisdialogeopen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
@@ -42,7 +34,7 @@ const Header = ({ onMenuToggle }: { onMenuToggle?: () => void }) => {
     }
   };
   return (
-    <header className="sticky top-9 z-50 flex items-center px-2 py-2 bg-background border-b sm:px-4">
+    <header className="sticky top-9 z-50 flex items-center px-2 pb-2 pt-0 bg-background border-b sm:px-4">
       {mobileSearchOpen ? (
         <form
           onSubmit={handleSearch}
@@ -152,59 +144,23 @@ const Header = ({ onMenuToggle }: { onMenuToggle?: () => void }) => {
                 >
                   <Bell className="w-6 h-6" />
                 </Button>
-                <DropdownMenu>
-              <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
                   className="relative h-8 w-8 rounded-full hover:bg-transparent!"
+                  title="Your profile"
+                  onClick={() => {
+                    if (user?.channelname) {
+                      router.push(`/channel/${user._id}`);
+                    } else {
+                      setisdialogeopen(true);
+                    }
+                  }}
                 >
                   <Avatar className="h-8 w-8">
                     <AvatarImage src={user.image} />
                     <AvatarFallback>{user.name?.[0] || "U"}</AvatarFallback>
                   </Avatar>
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56" align="end" forceMount>
-                {user?.channelname ? (
-                  <DropdownMenuItem
-                    asChild
-                    className="focus:bg-transparent! focus:text-inherit!"
-                  >
-                    <Link href={`/channel/${user?._id}`}>Your channel</Link>
-                  </DropdownMenuItem>
-                ) : (
-                  <div className="px-2 py-1.5">
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      className="w-full"
-                      onClick={() => setisdialogeopen(true)}
-                    >
-                      Create Channel
-                    </Button>
-                  </div>
-                )}
-                <DropdownMenuItem asChild>
-                  <Link href="/downloads">Downloads</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/history">History</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/liked">Liked videos</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/watch-later">Watch later</Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={logout}
-                  className="focus:bg-transparent! focus:text-inherit!"
-                >
-                  Sign out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
           </>
         ) : (
           <>

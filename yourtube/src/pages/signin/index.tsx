@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import { useUser } from "@/lib/AuthContext";
@@ -9,13 +9,17 @@ import { Eye, EyeOff } from "lucide-react";
 
 export default function SignInPage() {
   const router = useRouter();
-  const { handlegooglesignin, handleEmailLogin, handleEmailSignup } = useUser();
+  const { user, handlegooglesignin, handleEmailLogin, handleEmailSignup } = useUser();
   const [isSignup, setIsSignup] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  useEffect(() => {
+    if (user) router.push("/");
+  }, [user, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,11 +51,13 @@ export default function SignInPage() {
 
   const handleGoogle = async () => {
     setError("");
+    setLoading(true);
     try {
       await handlegooglesignin();
-      router.push("/");
     } catch (err: any) {
       setError(err?.message || "Google sign-in failed");
+    } finally {
+      setLoading(false);
     }
   };
 

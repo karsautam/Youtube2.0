@@ -120,3 +120,12 @@ export function clearAllGuestProgress(): void {
     keys.forEach((k) => window.localStorage.removeItem(k));
   } catch {}
 }
+
+export async function clearAllProgress(userId?: string): Promise<void> {
+  clearAllGuestProgress();
+  if (userId) {
+    try {
+      await axiosInstance.delete(`/progress/${userId}`);
+    } catch {}
+  }
+}

@@ -19,6 +19,7 @@ interface VideoHistoryContextType {
   size: () => number;
   skipPushId: string | null;
   markSkipPush: (id: string) => void;
+  wasCleared: boolean;
 }
 
 const VideoHistoryContext = createContext<VideoHistoryContextType>({
@@ -31,11 +32,13 @@ const VideoHistoryContext = createContext<VideoHistoryContextType>({
   size: () => 0,
   skipPushId: null,
   markSkipPush: () => {},
+  wasCleared: false,
 });
 
 export function VideoHistoryProvider({ children }: { children: ReactNode }) {
   const stackRef = useRef<VideoHistoryEntry[]>([]);
   const skipPushIdRef = useRef<string | null>(null);
+  const [wasCleared, setWasCleared] = useState(false);
   const [, rerender] = useState(0);
   const bump = () => rerender((n) => n + 1);
 
@@ -51,6 +54,7 @@ export function VideoHistoryProvider({ children }: { children: ReactNode }) {
     } else {
       stack.push(entry);
     }
+    setWasCleared(false);
     bump();
   }, []);
 
@@ -75,6 +79,7 @@ export function VideoHistoryProvider({ children }: { children: ReactNode }) {
 
   const clear = useCallback(() => {
     stackRef.current = [];
+    setWasCleared(true);
     bump();
   }, []);
 
@@ -96,6 +101,7 @@ export function VideoHistoryProvider({ children }: { children: ReactNode }) {
         size,
         skipPushId: skipPushIdRef.current,
         markSkipPush,
+        wasCleared,
       }}
     >
       {children}

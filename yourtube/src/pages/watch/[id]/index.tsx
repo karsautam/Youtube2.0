@@ -82,8 +82,8 @@ const index = () => {
       : undefined;
   return (
     <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-7xl lg:p-4">
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="mx-auto w-full lg:px-2">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_420px]">
           <div className="min-w-0 space-y-4">
             <div className="sticky top-14 z-30 bg-background lg:static lg:top-auto lg:z-auto">
               <Videopplayer
@@ -103,7 +103,7 @@ const index = () => {
             <VideoInfo video={videos} />
             <Comments videoId={id} />
           </div>
-          <aside className="space-y-4">
+          <aside className="lg:sticky lg:top-[3.25rem] lg:max-h-[calc(100vh-3.5rem)] lg:overflow-y-auto lg:pr-1">
             <RelatedVideos
               videos={allVideos.filter(
                 (vid: any, i: number) => vid._id !== id && i !== currentIndex

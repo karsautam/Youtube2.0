@@ -26,6 +26,54 @@ function formatCurrency(amount) {
 
 const CYCLE_LABELS = { monthly: "Monthly", quarterly: "Quarterly (3 months)", yearly: "Yearly" };
 
+export async function sendOtpEmail(email, otp, expiresInMinutes = 10) {
+  const html = `
+  <!DOCTYPE html>
+  <html>
+  <head>
+    <style>
+      body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 20px; }
+      .container { max-width: 480px; margin: auto; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+      .header { background: linear-gradient(135deg, #f59e0b, #ef4444); padding: 30px; text-align: center; }
+      .header h1 { color: #fff; margin: 0; font-size: 22px; }
+      .body { padding: 30px; text-align: center; }
+      .otp { display: inline-block; font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #ef4444; background: #fff5f5; padding: 12px 24px; border-radius: 8px; margin: 20px 0; }
+      .text { font-size: 14px; color: #444; line-height: 1.6; }
+      .note { font-size: 12px; color: #888; margin-top: 20px; }
+      .footer { background: #f4f4f4; padding: 16px 30px; text-align: center; font-size: 12px; color: #888; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header"><h1>YourTube</h1></div>
+      <div class="body">
+        <p class="text">Hi there,</p>
+        <p class="text">Use the following One-Time Password (OTP) to verify your login. This code expires in <strong>${expiresInMinutes} minutes</strong>.</p>
+        <div class="otp">${otp}</div>
+        <p class="text">If you did not request this, please ignore this email.</p>
+        <p class="note">For your security, never share this code with anyone.</p>
+      </div>
+      <div class="footer">YourTube &copy; ${new Date().getFullYear()}</div>
+    </div>
+  </body>
+  </html>
+  `;
+
+  try {
+    await getTransporter().sendMail({
+      from: `"YourTube" <${process.env.SMTP_EMAIL}>`,
+      to: email,
+      subject: "YourTube Login Verification Code",
+      html,
+    });
+    console.log("OTP email sent to:", email);
+    return true;
+  } catch (error) {
+    console.error("Failed to send OTP email:", error.message);
+    return false;
+  }
+}
+
 export async function sendSubscriptionConfirmation(user, sub, planDef) {
   const supportEmail = "sautamkar00@gmail.com";
   const html = `

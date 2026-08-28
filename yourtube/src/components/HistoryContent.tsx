@@ -89,9 +89,12 @@ export default function HistoryContent() {
         {history
           .filter((item) => item.videoid)
           .map((item) => (
-          <div key={item._id} className="flex gap-4 group">
-            <Link href={`/watch/${item.videoid._id}`} className="flex-shrink-0">
-              <div className="relative w-40 aspect-video bg-muted rounded overflow-hidden">
+          <div key={item._id} className="flex flex-col gap-2 group sm:flex-row sm:gap-4">
+            <Link
+              href={`/watch/${item.videoid._id}`}
+              className="flex-shrink-0"
+            >
+              <div className="relative w-full aspect-video bg-muted rounded overflow-hidden sm:w-40">
                 {item.videoid?.thumbnail ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -108,12 +111,13 @@ export default function HistoryContent() {
               </div>
             </Link>
 
-            <div className="flex-1 min-w-0">
-              <Link href={`/watch/${item.videoid._id}`}>
-                <h3 className="font-medium text-sm line-clamp-2 group-hover:text-blue-600 mb-1">
-                  {item.videoid.videotitle}
-                </h3>
-              </Link>
+            <div className="flex items-start gap-2 flex-1 min-w-0">
+              <div className="flex-1 min-w-0">
+                <Link href={`/watch/${item.videoid._id}`}>
+                  <h3 className="font-medium text-sm line-clamp-none group-hover:text-blue-600 mb-1 sm:line-clamp-2">
+                    {item.videoid.videotitle}
+                  </h3>
+                </Link>
               <p className="text-sm text-muted-foreground">
                 {item.videoid.videochanel}
               </p>
@@ -131,7 +135,7 @@ export default function HistoryContent() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="opacity-0 group-hover:opacity-100"
+                  className="flex-shrink-0 sm:opacity-0 sm:group-hover:opacity-100"
                 >
                   <MoreVertical className="w-4 h-4" />
                 </Button>
@@ -145,6 +149,7 @@ export default function HistoryContent() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            </div>
           </div>
         ))}
       </div>

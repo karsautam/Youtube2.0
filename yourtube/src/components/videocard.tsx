@@ -35,6 +35,7 @@ export default function VideoCard({ video }: any) {
   useEffect(() => {
     const v = previewRef.current;
     if (!v) return;
+    v.dataset.playerRole = "preview";
     const unregister = registerVideo(v);
     return unregister;
   }, []);

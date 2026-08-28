@@ -11,7 +11,7 @@
   Zap,
 } from "lucide-react";
 import Link from "next/link";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "./ui/button";
 import Channeldialogue from "./channeldialogue";
 import { useUser } from "@/lib/AuthContext";
@@ -31,6 +31,14 @@ const Sidebar = ({ open = false, onClose }: SidebarProps) => {
   const router = useRouter();
   const [isdialogeopen, setisdialogeopen] = useState(false);
 
+  useEffect(() => {
+    const close = () => onClose?.();
+    router.events.on("routeChangeComplete", close);
+    return () => {
+      router.events.off("routeChangeComplete", close);
+    };
+  }, [router, onClose]);
+
   const isActive = (href: string) =>
     href === "/" ? router.pathname === "/" : router.pathname.startsWith(href);
 
@@ -45,7 +53,7 @@ const Sidebar = ({ open = false, onClose }: SidebarProps) => {
       )}
       <aside
         className={cn(
-          "fixed left-0 top-23 bottom-0 z-40 w-64 overflow-y-auto bg-background border-r p-2 transition-transform duration-200 ease-in-out",
+          "fixed left-0 top-14 bottom-0 z-40 w-64 overflow-y-auto bg-background border-r p-2 transition-transform duration-200 ease-in-out lg:top-23",
           open ? "translate-x-0" : "-translate-x-full"
         )}
       >
