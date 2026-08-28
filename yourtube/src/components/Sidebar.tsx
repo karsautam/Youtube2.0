@@ -59,7 +59,7 @@ const Sidebar = ({ open = false, onClose }: SidebarProps) => {
       >
         <div className="mb-1 px-2 pt-2 pb-3" />
         <nav className="space-y-1">
-          <Link href="/">
+          <Link href="/" onClick={(e) => { if (isActive("/")) e.preventDefault(); }}>
             <Button
               variant="ghost"
               className={cn(

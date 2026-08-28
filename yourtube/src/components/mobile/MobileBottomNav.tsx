@@ -40,6 +40,9 @@ function NavButton({
   return (
     <Link
       href={href}
+      onClick={(e) => {
+        if (active) e.preventDefault();
+      }}
       className={cn(
         "flex h-full flex-col items-center justify-center gap-0.5 px-1 transition-colors active:bg-accent",
         active ? "text-foreground" : "text-muted-foreground"

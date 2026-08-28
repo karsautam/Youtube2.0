@@ -157,7 +157,7 @@ const VideoInfo = ({ video }: any) => {
         data: { userId: user._id },
       });
       toast.success("Video deleted");
-      router.push("/");
+      if (router.pathname !== "/") router.push("/");
     } catch (err: any) {
       toast.error(err?.response?.data?.message || "Failed to delete video");
     }

@@ -56,6 +56,7 @@ export default function NarrowSidebar() {
       ) : (
         <Link
           href="/"
+          onClick={(e) => { if (router.pathname === "/") e.preventDefault(); }}
           className="flex flex-col items-center justify-center gap-1 w-full py-3 text-[11px] text-muted-foreground hover:bg-accent rounded-lg"
         >
           <User className="w-6 h-6" />

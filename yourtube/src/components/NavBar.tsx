@@ -26,7 +26,7 @@ export default function NavBar() {
         setVideo({ ...info, currentTime: curTime });
       }
       clear();
-      router.push("/");
+      if (router.pathname !== "/") router.push("/");
       return;
     }
 
@@ -35,7 +35,7 @@ export default function NavBar() {
     const prev = peek();
     if (prev) {
       router.push(`/watch/${prev.id}`);
-    } else {
+    } else if (router.pathname !== "/") {
       router.push("/");
     }
   };

@@ -18,7 +18,7 @@ export default function SignInPage() {
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
-    if (user) router.push("/");
+    if (user && router.pathname !== "/") router.push("/");
   }, [user, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -31,7 +31,7 @@ export default function SignInPage() {
       } else {
         await handleEmailLogin(email, password);
       }
-      router.push("/");
+if (router.pathname !== "/") router.push("/");
     } catch (err: any) {
       if (err?.code === "auth/user-not-found") {
         setError("No account found with this email. Please sign up first.");

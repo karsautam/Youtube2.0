@@ -24,7 +24,7 @@ const UploadPage = () => {
         <VideoUploader
           channelId={user._id ? String(user._id) : undefined}
           channelName=""
-          onUploaded={() => router.push("/")}
+          onUploaded={() => router.pathname !== "/" && router.push("/")}
         />
         <p className="text-xs text-muted-foreground mt-3">
           Uploaded without selecting a channel â€” it will be listed as
