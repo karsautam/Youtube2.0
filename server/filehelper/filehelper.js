@@ -4,6 +4,7 @@ import fs from "fs";
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     if (file.mimetype.startsWith("video/")) {
+      fs.mkdirSync("uploads", { recursive: true });
       cb(null, "uploads");
     } else {
       fs.mkdirSync("uploads/subtitles", { recursive: true });

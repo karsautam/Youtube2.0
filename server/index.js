@@ -3,6 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import bodyParser from "body-parser";
 import mongoose from "mongoose";
+import fs from "fs";
 import { createServer } from "http";
 import { Server } from "socket.io";
 import userroutes from "./routes/auth.js";
@@ -22,6 +23,9 @@ import initMeetingSocket from "./socket/meeting.js";
 
 dotenv.config();
 const app = express();
+fs.mkdirSync("uploads", { recursive: true });
+fs.mkdirSync("uploads/subtitles", { recursive: true });
+fs.mkdirSync("uploads/thumbnails", { recursive: true });
 app.use(cors());
 app.use(express.json({ limit: "100mb", extended: true }));
 app.use(express.urlencoded({ limit: "100mb", extended: true }));
@@ -43,6 +47,13 @@ app.use("/subscription", subscriptionroutes);
 app.use("/channelfollow", channelfollowroutes);
 app.use("/download", downloadroutes);
 app.use("/otp", otproutes);
+
+app.use((err, req, res, next) => {
+  console.error("unhandled error:", err?.message);
+  res.status(err?.status || 500).json({
+    message: err?.message || "Internal server error",
+  });
+});
 
 const PORT = process.env.PORT || 5000;
 
