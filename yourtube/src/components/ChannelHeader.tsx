@@ -1,20 +1,47 @@
-﻿import React, { useEffect, useState } from "react";
-import { Avatar, AvatarFallback } from "./ui/avatar";
+﻿import React, { useEffect, useRef, useState } from "react";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Button } from "./ui/button";
 import { useUser } from "@/lib/AuthContext";
 import axiosInstance from "@/lib/axiosinstance";
 import { toast } from "sonner";
-import { Pencil, Check, X } from "lucide-react";
+import { Pencil, Check, X, Camera } from "lucide-react";
 
 const ChannelHeader = ({ channel, onChannelUpdated }: any) => {
-  const { user } = useUser();
+  const { user, login } = useUser();
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [subscriberCount, setSubscriberCount] = useState(0);
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(channel?.channelname || "");
   const [saving, setSaving] = useState(false);
+  const [uploadingDp, setUploadingDp] = useState(false);
+  const dpInputRef = useRef<HTMLInputElement>(null);
 
   const isOwner = user?._id && String(user._id) === String(channel?._id);
+
+  const handleDpChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
+    setUploadingDp(true);
+    try {
+      const fd = new FormData();
+      fd.append("image", file);
+      const res = await axiosInstance.post("/user/upload-image", fd);
+      const url = res.data.url;
+      await axiosInstance.patch(`/user/update/${channel._id}`, { image: url });
+      toast.success("Channel picture updated");
+      login({ ...user, image: url });
+      onChannelUpdated?.();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Failed to update picture");
+    } finally {
+      setUploadingDp(false);
+    }
+  };
 
   useEffect(() => {
     setNameValue(channel?.channelname || "");
@@ -91,11 +118,34 @@ const ChannelHeader = ({ channel, onChannelUpdated }: any) => {
 
       <div className="px-4 py-6">
         <div className="flex flex-col md:flex-row gap-6 items-start">
-          <Avatar className="w-20 h-20 md:w-32 md:h-32">
-            <AvatarFallback className="text-2xl">
-              {channel?.channelname?.[0]}
-            </AvatarFallback>
-          </Avatar>
+          <div className="relative">
+            <Avatar className="w-20 h-20 md:w-32 md:h-32">
+              <AvatarImage src={channel?.image || user?.image || undefined} />
+              <AvatarFallback className="text-2xl">
+                {channel?.channelname?.[0]}
+              </AvatarFallback>
+            </Avatar>
+            {isOwner && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => dpInputRef.current?.click()}
+                  disabled={uploadingDp}
+                  title="Change channel picture"
+                  className="absolute bottom-0 right-0 rounded-full border bg-background p-1.5 shadow-md hover:bg-accent disabled:opacity-50"
+                >
+                  <Camera className="h-4 w-4" />
+                </button>
+                <input
+                  ref={dpInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleDpChange}
+                />
+              </>
+            )}
+          </div>
 
           <div className="flex-1 space-y-2">
             {editingName ? (
