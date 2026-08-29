@@ -5,6 +5,14 @@ import { ArrowLeft, Bell, Menu, Search, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useUser } from "@/lib/AuthContext";
 
 export default function MobileHeader({
@@ -15,7 +23,7 @@ export default function MobileHeader({
   onAccountOpen?: () => void;
 }) {
   const router = useRouter();
-  const { user } = useUser();
+  const { user, logout } = useUser();
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
 
@@ -90,27 +98,62 @@ export default function MobileHeader({
             <Button variant="ghost" size="icon" aria-label="Notifications">
               <Bell className="h-[22px] w-[22px]" />
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label="Your profile"
-              onClick={() => {
-                if (user) {
-                  router.push(`/channel/${user._id}`);
-                } else {
-                  onAccountOpen?.();
-                }
-              }}
-            >
-              {user ? (
-                <Avatar className="h-7 w-7">
-                  <AvatarImage src={user.image} />
-                  <AvatarFallback>{user.name?.[0] || "U"}</AvatarFallback>
-                </Avatar>
-              ) : (
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Your profile"
+                    className="rounded-full hover:bg-transparent!"
+                  >
+                    <Avatar className="h-7 w-7">
+                      <AvatarImage src={user.image} />
+                      <AvatarFallback>{user.name?.[0] || "U"}</AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel className="flex flex-col">
+                    <span className="text-sm font-medium">{user.name}</span>
+                    <span className="text-xs font-normal text-muted-foreground">
+                      {user.email || user.channelname}
+                    </span>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => {
+                      if (user?.channelname) {
+                        router.push(`/channel/${user._id}`);
+                      } else {
+                        router.push("/signin");
+                      }
+                    }}
+                  >
+                    {user?.channelname ? "Your channel" : "Create a channel"}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={async () => {
+                      await logout();
+                      if (router.pathname === "/") router.reload();
+                    }}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    Log out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Your profile"
+                onClick={() => onAccountOpen?.()}
+              >
                 <User className="h-[22px] w-[22px]" />
-              )}
-            </Button>
+              </Button>
+            )}
           </div>
         </div>
       )}
