@@ -251,6 +251,9 @@ export const uploadvideo = async (req, res) => {
         uploader: req.body.uploader,
         subtitles: subtitleTracks,
         qualities,
+        requiredPlan: ["free", "bronze", "silver", "gold"].includes(req.body.requiredPlan)
+          ? req.body.requiredPlan
+          : "free",
       });
       await file.save();
 
@@ -380,7 +383,7 @@ export const uploadCover = async (req, res) => {
 
 export const saveDirectUpload = async (req, res) => {
   try {
-    const { videotitle, videochanel, uploader, filepath, thumbnail, filesize, qualities, subtitles } = req.body;
+    const { videotitle, videochanel, uploader, filepath, thumbnail, filesize, qualities, subtitles, requiredPlan } = req.body;
     if (!videotitle || !filepath || !uploader)
       return res.status(400).json({ message: "Missing required fields" });
     const saved = await video.create({
@@ -394,6 +397,7 @@ export const saveDirectUpload = async (req, res) => {
       uploader,
       qualities: qualities || [],
       subtitles: subtitles || [],
+      requiredPlan: ["free", "bronze", "silver", "gold"].includes(requiredPlan) ? requiredPlan : "free",
     });
 
     (async () => {

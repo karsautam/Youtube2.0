@@ -24,6 +24,7 @@ const videochema = mongoose.Schema(
         filepath: { type: String },
       },
     ],
+    requiredPlan: { type: String, default: "free" },
   },
   {
     timestamps: true,

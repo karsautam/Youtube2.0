@@ -25,6 +25,7 @@ const VideoUploader = ({
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [uploadComplete, setUploadComplete] = useState(false);
   const [phase, setPhase] = useState<"idle" | "uploading" | "finalizing">("idle");
+  const [requiredPlan, setRequiredPlan] = useState("free");
   const abortRef = useRef<AbortController | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const subtitleInputRef = useRef<HTMLInputElement>(null);
@@ -204,6 +205,7 @@ const VideoUploader = ({
         filesize: videoFile.size,
         qualities: [],
         subtitles: subtitles || [],
+        requiredPlan,
       });
 
       toast.success("Upload successful");
@@ -367,6 +369,30 @@ const VideoUploader = ({
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
                   WebVTT (.vtt) or SubRip (.srt) files
+                </p>
+              </div>
+
+              <div>
+                <Label htmlFor="required-plan">Membership plan</Label>
+                <div className="mt-1 flex gap-2">
+                  {["free", "bronze", "silver", "gold"].map((plan) => (
+                    <button
+                      key={plan}
+                      type="button"
+                      onClick={() => setRequiredPlan(plan)}
+                      disabled={isUploading || uploadComplete}
+                      className={`flex-1 rounded-md border px-2 py-1.5 text-sm font-medium capitalize transition ${
+                        requiredPlan === plan
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border bg-background text-muted-foreground hover:bg-accent"
+                      }`}
+                    >
+                      {plan}
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Only members with this plan or higher can watch the video
                 </p>
               </div>
             </div>
