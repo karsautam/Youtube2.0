@@ -9,10 +9,10 @@ export function VideoCardSkeleton() {
       <div className="mt-3 flex gap-3">
         <div className="h-9 w-9 shrink-0 rounded-full bg-muted" />
         <div className="flex-1 min-w-0 space-y-2">
-          <div className="h-4 w-full rounded bg-muted" />
-          <div className="h-4 w-2/3 rounded bg-muted" />
-          <div className="h-3 w-1/2 rounded bg-muted/70" />
-          <div className="h-3 w-1/3 rounded bg-muted/70" />
+          <div className="h-6 w-full rounded bg-muted" />
+          <div className="h-6 w-2/3 rounded bg-muted" />
+          <div className="mt-1 h-5 w-1/2 rounded bg-muted/70" />
+          <div className="h-5 w-1/3 rounded bg-muted/70" />
         </div>
       </div>
     </div>
