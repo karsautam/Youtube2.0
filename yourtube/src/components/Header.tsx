@@ -12,12 +12,20 @@ import { Button } from "./ui/button";
 import Link from "next/link";
 import { Input } from "./ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 import Channeldialogue from "./channeldialogue";
 import { useRouter } from "next/router";
 import { useUser } from "@/lib/AuthContext";
 
 const Header = ({ onMenuToggle }: { onMenuToggle?: () => void }) => {
-  const { user } = useUser();
+  const { user, logout } = useUser();
   const [searchQuery, setSearchQuery] = useState("");
   const [isdialogeopen, setisdialogeopen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
@@ -148,23 +156,50 @@ const Header = ({ onMenuToggle }: { onMenuToggle?: () => void }) => {
                 >
                   <Bell className="w-6 h-6" />
                 </Button>
-                <Button
-                  variant="ghost"
-                  className="relative h-8 w-8 rounded-full hover:bg-transparent!"
-                  title="Your profile"
-                  onClick={() => {
-                    if (user?.channelname) {
-                      router.push(`/channel/${user._id}`);
-                    } else {
-                      setisdialogeopen(true);
-                    }
-                  }}
-                >
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src={user.image} />
-                    <AvatarFallback>{user.name?.[0] || "U"}</AvatarFallback>
-                  </Avatar>
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className="relative h-8 w-8 rounded-full hover:bg-transparent!"
+                      title="Your profile"
+                    >
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={user.image} />
+                        <AvatarFallback>{user.name?.[0] || "U"}</AvatarFallback>
+                      </Avatar>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel className="flex flex-col">
+                      <span className="text-sm font-medium">{user.name}</span>
+                      <span className="text-xs font-normal text-muted-foreground">
+                        {user.email || user.channelname}
+                      </span>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => {
+                        if (user?.channelname) {
+                          router.push(`/channel/${user._id}`);
+                        } else {
+                          setisdialogeopen(true);
+                        }
+                      }}
+                    >
+                      {user?.channelname ? "Your channel" : "Create a channel"}
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={async () => {
+                        await logout();
+                        if (router.pathname === "/") router.reload();
+                      }}
+                      className="text-destructive focus:text-destructive"
+                    >
+                      Log out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
           </>
         ) : (
           <>
