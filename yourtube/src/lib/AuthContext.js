@@ -54,6 +54,7 @@ export const UserProvider = ({ children }) => {
     clearAuthError();
     try {
       if (isMobileDevice()) {
+        sessionStorage.setItem("yt_redirect_pending", "1");
         await signInWithRedirect(auth, provider);
         return;
       }
@@ -95,7 +96,13 @@ export const UserProvider = ({ children }) => {
       .then((result) => {
         if (!active) return;
         if (result && result.user) {
+          sessionStorage.removeItem("yt_redirect_pending");
           return syncBackendUser(result.user);
+        }
+        if (sessionStorage.getItem("yt_redirect_pending")) {
+          sessionStorage.removeItem("yt_redirect_pending");
+          console.warn("getRedirectResult: no pending sign-in found after redirect");
+          setAuthError("redirect-came-back-empty");
         }
       })
       .catch((error) => {
@@ -111,6 +118,7 @@ export const UserProvider = ({ children }) => {
   useEffect(() => {
     const unsubcribe = onAuthStateChanged(auth, async (firebaseuser) => {
       if (firebaseuser) {
+        sessionStorage.removeItem("yt_redirect_pending");
         try {
           await syncBackendUser(firebaseuser);
         } catch (error) {
