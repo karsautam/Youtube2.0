@@ -751,7 +751,14 @@ export function useMeetingRoom({
     };
 
     socket.on("connect", () => {
-      socket.emit("meet:join", { roomId, token, user, reconnectKey });
+      socket.emit("meet:join", {
+        roomId,
+        token,
+        user,
+        reconnectKey,
+        micOn: mediaRef.current?.micOn ?? true,
+        camOn: mediaRef.current?.camOn ?? true,
+      });
     });
     socket.on("meet:joined", (data: any) => h().bootstrap(data));
     socket.on("meet:reconnected", (data: any) => h().bootstrap(data));

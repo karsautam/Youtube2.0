@@ -59,7 +59,8 @@ export function initMeetingSocket(io) {
 
     socket.on("meet:join", async (payload) => {
       try {
-        const { roomId: rid, token, user, reconnectKey } = payload || {};
+        const { roomId: rid, token, user, reconnectKey, micOn, camOn } =
+          payload || {};
         if (!rid || !token || !user || !user.id || !user.email) {
           return deny("Invalid join payload");
         }
@@ -87,6 +88,8 @@ export function initMeetingSocket(io) {
             existing.ghost = false;
             existing.reconnecting = false;
             existing.reconnectKey = reconnectKey || existing.reconnectKey;
+            if (micOn !== undefined) existing.micOn = Boolean(micOn);
+            if (camOn !== undefined) existing.camOn = Boolean(camOn);
             self = existing;
             roomId = rid;
             if (disconnectTimer) {
@@ -145,8 +148,8 @@ export function initMeetingSocket(io) {
           email: user.email,
           name: user.name || user.email,
           image: user.image || "",
-          micOn: false,
-          camOn: false,
+          micOn: micOn !== undefined ? Boolean(micOn) : true,
+          camOn: camOn !== undefined ? Boolean(camOn) : true,
           raisedHand: false,
           speaking: false,
           isHost,
