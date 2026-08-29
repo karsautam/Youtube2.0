@@ -9,7 +9,7 @@ import { Eye, EyeOff } from "lucide-react";
 
 export default function SignInPage() {
   const router = useRouter();
-  const { user, handlegooglesignin, handleEmailLogin, handleEmailSignup } = useUser();
+  const { user, handlegooglesignin, handleEmailLogin, handleEmailSignup, authError, clearAuthError } = useUser();
   const [isSignup, setIsSignup] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -51,6 +51,7 @@ if (router.pathname !== "/") router.push("/");
 
   const handleGoogle = async () => {
     setError("");
+    clearAuthError();
     setLoading(true);
     try {
       await handlegooglesignin();
@@ -184,6 +185,9 @@ if (router.pathname !== "/") router.push("/");
             </div>
             {error && (
               <p className="text-sm text-destructive">{error}</p>
+            )}
+            {authError && (
+              <p className="text-sm text-destructive break-words">Auth error: {authError}</p>
             )}
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Please wait..." : isSignup ? "Sign up" : "Log in"}

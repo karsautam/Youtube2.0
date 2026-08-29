@@ -25,6 +25,8 @@ const isMobileDevice = () => {
 
 export const UserProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [authError, setAuthError] = useState(null);
+  const clearAuthError = () => setAuthError(null);
 
   const login = (userdata) => {
     setUser(userdata);
@@ -49,6 +51,7 @@ export const UserProvider = ({ children }) => {
     login(response.data.result);
   };
   const handlegooglesignin = async () => {
+    clearAuthError();
     try {
       if (isMobileDevice()) {
         await signInWithRedirect(auth, provider);
@@ -57,6 +60,7 @@ export const UserProvider = ({ children }) => {
       const result = await signInWithPopup(auth, provider);
       await syncBackendUser(result.user);
     } catch (error) {
+      setAuthError(String(error?.code || error?.message || error));
       if (
         error?.code === "auth/popup-blocked" ||
         error?.code === "auth/operation-not-supported-in-this-environment"
@@ -96,6 +100,7 @@ export const UserProvider = ({ children }) => {
       })
       .catch((error) => {
         console.error("getRedirectResult error:", error?.code, error?.message);
+        setAuthError(String(error?.code || error?.message || error));
       });
     return () => {
       active = false;
@@ -123,6 +128,8 @@ export const UserProvider = ({ children }) => {
         user,
         login,
         logout,
+        authError,
+        clearAuthError,
         handlegooglesignin,
         handleEmailLogin,
         handleEmailSignup,
