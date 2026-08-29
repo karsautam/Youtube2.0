@@ -138,6 +138,25 @@ const VideoUploader = ({
       toast.error("Please provide file and title");
       return;
     }
+
+    const backendBase =
+      process.env.NEXT_PUBLIC_BACKEND_URL ||
+      (typeof window !== "undefined"
+        ? window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+          ? "http://localhost:5000"
+          : window.location.hostname.endsWith("vercel.app")
+            ? "https://yourtube-backend-ewzs.onrender.com"
+            : `${window.location.protocol}//${window.location.hostname}:5000`
+        : "http://localhost:5000");
+
+    const isDeployedBackend = backendBase.includes("onrender.com");
+    if (isDeployedBackend && videoFile.size > 100 * 1024 * 1024) {
+      toast.error(
+        "This video is larger than 100MB. The free backend can't store files that big yet — we're wiring up Backblaze B2 for large uploads. Please try a file under 100MB for now."
+      );
+      return;
+    }
+
     setIsUploading(true);
     setUploadProgress(0);
     setPhase("uploading");
@@ -150,16 +169,6 @@ const VideoUploader = ({
       for (const sub of subtitleFiles) {
         formData.append("subtitles", sub);
       }
-
-      const backendBase =
-        process.env.NEXT_PUBLIC_BACKEND_URL ||
-        (typeof window !== "undefined"
-          ? window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
-            ? "http://localhost:5000"
-            : window.location.hostname.endsWith("vercel.app")
-              ? "https://yourtube-backend-ewzs.onrender.com"
-              : `${window.location.protocol}//${window.location.hostname}:5000`
-          : "http://localhost:5000");
 
       const { secure_url, subtitles } = await uploadWithProgress(
         `${backendBase}/video/stream-upload`,
@@ -230,7 +239,7 @@ const VideoUploader = ({
               or click to select files
             </p>
             <p className="text-xs text-muted-foreground mt-4">
-              MP4, WebM, MOV or AVI — Any size
+              MP4, WebM, MOV or AVI — up to 100MB on the web build
             </p>
             <input
               type="file"

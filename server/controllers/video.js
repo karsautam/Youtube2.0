@@ -120,6 +120,8 @@ export async function processRenditions(videoId, videoFilePath) {
   }
 }
 
+const renditionsEnabled = () => process.env.SKIP_RENDITIONS !== "true";
+
 async function generateRenditionsCloud(videoFilePath) {
   const ext = path.extname(videoFilePath);
   const basename = path.basename(videoFilePath, ext);
@@ -226,7 +228,9 @@ export const uploadvideo = async (req, res) => {
 
       let finalFilepath = filepath;
       let finalThumbnail = thumbnail;
-      const qualities = await generateRenditionsCloud(videoFile.path);
+      const qualities = renditionsEnabled()
+        ? await generateRenditionsCloud(videoFile.path)
+        : [];
       const cloudUrl = await uploadMedia(videoFile.path, "video");
       if (cloudUrl) {
         finalFilepath = cloudUrl;
@@ -402,11 +406,11 @@ export const saveDirectUpload = async (req, res) => {
               const thumb = await generateThumbnail(absPath);
               if (thumb) await video.updateOne({ _id: saved._id }, { $set: { thumbnail: thumb } });
             }
-            if (!qualities || qualities.length === 0) {
+            if (renditionsEnabled() && (!qualities || qualities.length === 0)) {
               processRenditions(saved._id, absPath);
             }
           }
-        } else if (!thumbnail || !qualities || qualities.length === 0) {
+        } else if (renditionsEnabled() && (!thumbnail || !qualities || qualities.length === 0)) {
           const { default: axios } = await import("axios");
           const { default: os } = await import("os");
           const { default: crypto } = await import("crypto");

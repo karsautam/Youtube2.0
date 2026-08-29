@@ -24,3 +24,6 @@ services:
         sync: false
       - key: CLOUDINARY_API_SECRET
         sync: false
+      - key: SKIP_RENDITIONS
+        value: "true"
+        sync: false
