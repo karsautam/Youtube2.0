@@ -32,11 +32,13 @@ export default function MeetingRoom({
   onExit,
 }: Props) {
   const [phase, setPhase] = useState<"pre" | "call">("pre");
+  const [preState, setPreState] = useState({ micOn: true, camOn: true });
 
   if (phase === "pre") {
     return (
       <PreJoin
         roomId={roomId}
+        onStateChange={setPreState}
         onJoin={() => setPhase("call")}
       />
     );
@@ -49,6 +51,8 @@ export default function MeetingRoom({
       user={user}
       passcode={passcode}
       startedAt={startedAt}
+      initialMicOn={preState.micOn}
+      initialCamOn={preState.camOn}
       onExit={onExit}
     />
   );
@@ -56,13 +60,19 @@ export default function MeetingRoom({
 
 function PreJoin({
   roomId,
+  onStateChange,
   onJoin,
 }: {
   roomId: string;
+  onStateChange: (s: { micOn: boolean; camOn: boolean }) => void;
   onJoin: () => void;
 }) {
   const media = useMedia();
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    onStateChange({ micOn: media.micOn, camOn: media.camOn });
+  }, [media.micOn, media.camOn, onStateChange]);
 
   useEffect(() => {
     media.startMedia();
@@ -152,14 +162,18 @@ function CallScreen({
   user,
   passcode,
   startedAt,
+  initialMicOn,
+  initialCamOn,
   onExit,
-}: Props) {
+}: Props & { initialMicOn: boolean; initialCamOn: boolean }) {
   const room = useMeetingRoom({
     roomId,
     token,
     user,
     reconnectKey: `rk-${roomId}-${user.id}-${Date.now()}`,
     startedAt,
+    initialMicOn,
+    initialCamOn,
     onExit: (reason) => onExit(reason),
   });
 

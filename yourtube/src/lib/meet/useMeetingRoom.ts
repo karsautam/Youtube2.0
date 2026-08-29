@@ -33,6 +33,8 @@ type Args = {
   user: MeetingUser;
   reconnectKey: string;
   startedAt?: string | null;
+  initialMicOn?: boolean;
+  initialCamOn?: boolean;
   onExit: (reason?: string) => void;
 };
 
@@ -79,8 +81,14 @@ export function useMeetingRoom({
   reconnectKey,
   startedAt,
   onExit,
+  initialMicOn,
+  initialCamOn,
 }: Args): MeetingRoomApi {
-  const media = useMedia((speaking) => onSpeakingRef.current(speaking));
+  const media = useMedia(
+    (speaking) => onSpeakingRef.current(speaking),
+    initialMicOn,
+    initialCamOn
+  );
   const [connectionState, setConnectionState] =
     useState<ConnectionState>("connecting");
   const [denyReason, setDenyReason] = useState<string | null>(null);

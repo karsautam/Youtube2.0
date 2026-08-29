@@ -32,10 +32,14 @@ export type MediaManager = {
   canSwitchCamera: boolean;
 };
 
-export function useMedia(onSpeakingChange?: (speaking: boolean) => void): MediaManager {
+export function useMedia(
+  onSpeakingChange?: (speaking: boolean) => void,
+  initialMicOn = true,
+  initialCamOn = true
+): MediaManager {
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
-  const [micOn, setMicOn] = useState(true);
-  const [camOn, setCamOn] = useState(true);
+  const [micOn, setMicOn] = useState(initialMicOn);
+  const [camOn, setCamOn] = useState(initialCamOn);
   const [presenting, setPresenting] = useState(false);
   const [permissionError, setPermissionError] = useState<string | null>(null);
   const [requesting, setRequesting] = useState(false);
@@ -48,8 +52,8 @@ export function useMedia(onSpeakingChange?: (speaking: boolean) => void): MediaM
   const streamRef = useRef<MediaStream | null>(null);
   const cameraTrackRef = useRef<MediaStreamTrack | null>(null);
   const screenTrackRef = useRef<MediaStreamTrack | null>(null);
-  const micRef = useRef(true);
-  const camRef = useRef(true);
+  const micRef = useRef(initialMicOn);
+  const camRef = useRef(initialCamOn);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const speakingRef = useRef(false);
   const onSpeakingRef = useRef(onSpeakingChange);
