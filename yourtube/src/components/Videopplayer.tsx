@@ -175,7 +175,7 @@ function SettingsRow({
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full items-center justify-between gap-2 rounded px-2 py-1 text-[13px] text-white/90 transition-colors hover:bg-white/10"
+      className="flex w-full items-center justify-between gap-2 rounded px-1.5 py-0.5 text-[12px] text-white/90 transition-colors hover:bg-white/10 sm:px-2 sm:py-1 sm:text-[13px]"
     >
       <span className="truncate">{label}</span>
       {value ? (
@@ -197,7 +197,7 @@ function SubmenuBack({
     <button
       type="button"
       onClick={onBack}
-      className="flex w-full items-center gap-1 rounded px-1.5 py-1.5 text-sm font-medium text-white/90 transition-colors hover:bg-white/10"
+      className="flex w-full items-center gap-1 rounded px-1 py-1 text-[13px] font-medium text-white/90 transition-colors hover:bg-white/10 sm:px-1.5 sm:py-1.5 sm:text-sm"
     >
       <ChevronLeft className="size-4 shrink-0" />
       <span className="truncate">{title}</span>
@@ -219,7 +219,7 @@ function OptionRow({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex w-full items-center justify-between gap-2 rounded px-2 py-1.5 text-sm text-white/90 transition-colors hover:bg-white/10",
+        "flex w-full items-center justify-between gap-2 rounded px-1.5 py-1 text-[13px] text-white/90 transition-colors hover:bg-white/10 sm:px-2 sm:py-1.5 sm:text-sm",
         selected && "text-red-500"
       )}
     >
@@ -1651,7 +1651,7 @@ export default function VideoPlayer({
               </ControlButton>
               {settingsOpen && (
                 <div
-                  className="fixed z-50 w-56 touch-pan-y overflow-y-auto overscroll-contain rounded-lg border border-white/10 bg-black/90 p-1 shadow-2xl backdrop-blur-md"
+                  className="fixed z-50 w-48 overflow-y-auto overscroll-contain rounded-lg border border-white/10 bg-black/90 p-1 shadow-2xl backdrop-blur-md sm:w-56 sm:touch-pan-y"
                   style={
                     settingsMenuPos
                       ? {
@@ -1689,7 +1689,7 @@ export default function VideoPlayer({
                           onClick={() => setSettingsPanel("subtitles")}
                         />
                       )}
-                      <div className="flex items-center justify-between border-t border-white/10 px-2 pt-2 text-sm text-white/90">
+                      <div className="flex items-center justify-between border-t border-white/10 px-1.5 pt-1.5 text-[12px] text-white/90 sm:px-2 sm:pt-2 sm:text-sm">
                         <span>Autoplay next</span>
                         <button
                           type="button"
@@ -1709,7 +1709,7 @@ export default function VideoPlayer({
                           />
                         </button>
                       </div>
-                      <div className="flex items-center justify-between px-2 pb-0.5 pt-2 text-sm text-white/90">
+                      <div className="flex items-center justify-between px-1.5 pb-0.5 pt-1.5 text-[12px] text-white/90 sm:px-2 sm:pb-0.5 sm:pt-2 sm:text-sm">
                         <span>Loop</span>
                         <button
                           type="button"
