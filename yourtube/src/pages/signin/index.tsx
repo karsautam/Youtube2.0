@@ -80,6 +80,37 @@ if (router.pathname !== "/") router.push("/");
         </div>
 
         <div className="bg-card border rounded-lg p-6 space-y-4">
+          <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
+            <button
+              type="button"
+              onClick={() => {
+                setIsSignup(true);
+                setError("");
+              }}
+              className={`rounded-md py-2 text-sm font-medium transition ${
+                isSignup
+                  ? "bg-background shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Create account
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setIsSignup(false);
+                setError("");
+              }}
+              className={`rounded-md py-2 text-sm font-medium transition ${
+                !isSignup
+                  ? "bg-background shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Log in
+            </button>
+          </div>
+
           <Button
             variant="outline"
             className="w-full"
@@ -159,20 +190,6 @@ if (router.pathname !== "/") router.push("/");
             </Button>
           </form>
         </div>
-
-        <p className="text-center text-sm text-muted-foreground">
-          {isSignup ? "Already have an account?" : "Don't have an account?"}{" "}
-          <button
-            type="button"
-            onClick={() => {
-              setIsSignup(!isSignup);
-              setError("");
-            }}
-            className="text-primary underline underline-offset-4 hover:text-primary/80"
-          >
-            {isSignup ? "Log in" : "Create one"}
-          </button>
-        </p>
       </div>
     </div>
   );
