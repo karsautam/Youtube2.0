@@ -163,7 +163,7 @@ const Header = ({ onMenuToggle }: { onMenuToggle?: () => void }) => {
                       className="relative h-8 w-8 rounded-full hover:bg-transparent!"
                       title="Your profile"
                     >
-                      <Avatar className="h-8 w-8">
+                      <Avatar key={user.image || "none"} className="h-8 w-8">
                         <AvatarImage src={user.image} />
                         <AvatarFallback>{user.name?.[0] || "U"}</AvatarFallback>
                       </Avatar>

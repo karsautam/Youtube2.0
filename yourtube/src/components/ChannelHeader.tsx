@@ -119,7 +119,7 @@ const ChannelHeader = ({ channel, onChannelUpdated }: any) => {
       <div className="px-4 py-6">
         <div className="flex flex-col md:flex-row gap-6 items-start">
           <div className="relative">
-            <Avatar className="w-20 h-20 md:w-32 md:h-32">
+            <Avatar key={channel?.image || user?.image || "none"} className="w-20 h-20 md:w-32 md:h-32">
               <AvatarImage src={channel?.image || user?.image || undefined} />
               <AvatarFallback className="text-2xl">
                 {channel?.channelname?.[0]}

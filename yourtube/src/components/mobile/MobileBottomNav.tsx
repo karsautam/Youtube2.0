@@ -126,7 +126,7 @@ export default function MobileBottomNav({
         <div className="flex items-center gap-3 border-b px-4 py-4">
           {user ? (
             <>
-              <Avatar className="h-10 w-10 shrink-0">
+              <Avatar key={user.image || "none"} className="h-10 w-10 shrink-0">
                 <AvatarImage src={user.image} />
                 <AvatarFallback>{user.name?.[0] || "U"}</AvatarFallback>
               </Avatar>
@@ -244,7 +244,7 @@ export default function MobileBottomNav({
             className="flex h-full flex-col items-center justify-center gap-0.5 px-1 transition-colors active:bg-accent"
           >
             {user ? (
-              <Avatar className="h-6 w-6">
+              <Avatar key={user.image || "none"} className="h-6 w-6">
                 <AvatarImage src={user.image} />
                 <AvatarFallback>{user.name?.[0] || "U"}</AvatarFallback>
               </Avatar>

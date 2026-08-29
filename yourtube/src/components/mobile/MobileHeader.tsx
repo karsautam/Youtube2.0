@@ -107,7 +107,7 @@ export default function MobileHeader({
                     aria-label="Your profile"
                     className="rounded-full hover:bg-transparent!"
                   >
-                    <Avatar className="h-7 w-7">
+                    <Avatar key={user.image || "none"} className="h-7 w-7">
                       <AvatarImage src={user.image} />
                       <AvatarFallback>{user.name?.[0] || "U"}</AvatarFallback>
                     </Avatar>
