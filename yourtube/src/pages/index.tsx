@@ -1,5 +1,6 @@
 import CategoryTabs from "@/components/category-tabs";
-import Videogrid, { VideoSkeletonGrid } from "@/components/Videogrid";
+import Videogrid from "@/components/Videogrid";
+import { VideoSkeletonGrid } from "@/components/ui/skeleton";
 import { Suspense } from "react";
 
 export default function Home() {

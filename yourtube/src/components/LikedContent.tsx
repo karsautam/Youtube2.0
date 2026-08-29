@@ -15,6 +15,7 @@ import {
 import { useUser } from "@/lib/AuthContext";
 import axiosInstance from "@/lib/axiosinstance";
 import mediaUrl from "@/lib/mediaUrl";
+import { ListRowSkeleton } from "@/components/ui/skeleton";
 
 export default function LikedVideosContent() {
   const [likedVideos, setLikedVideos] = useState<any[]>([]);
@@ -65,7 +66,7 @@ export default function LikedVideosContent() {
   }
 
   if (loading) {
-    return <div>Loading liked videos...</div>;
+    return <ListRowSkeleton count={6} />;
   }
 
   if (likedVideos.length === 0) {

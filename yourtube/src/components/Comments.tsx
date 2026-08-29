@@ -6,6 +6,7 @@ import { formatDistanceToNow } from "date-fns";
 import { useUser } from "@/lib/AuthContext";
 import axiosInstance from "@/lib/axiosinstance";
 import { ThumbsUp, ThumbsDown, MessageSquare, ChevronDown, ChevronUp } from "lucide-react";
+import { CommentSkeleton } from "@/components/ui/skeleton";
 
 interface Comment {
   _id: string;
@@ -61,7 +62,7 @@ const Comments = ({ videoId }: any) => {
   };
 
   if (loading) {
-    return <div>Loading comments...</div>;
+    return <CommentSkeleton count={5} />;
   }
 
   const handleSubmitComment = async () => {

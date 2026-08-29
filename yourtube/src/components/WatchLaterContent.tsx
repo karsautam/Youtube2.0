@@ -15,6 +15,7 @@ import {
 import axiosInstance from "@/lib/axiosinstance";
 import { useUser } from "@/lib/AuthContext";
 import mediaUrl from "@/lib/mediaUrl";
+import { ListRowSkeleton } from "@/components/ui/skeleton";
 
 export default function WatchLaterContent() {
   const [watchLater, setWatchLater] = useState<any[]>([]);
@@ -42,7 +43,7 @@ export default function WatchLaterContent() {
   };
 
   if (loading) {
-    return <div>Loading watch later...</div>;
+    return <ListRowSkeleton count={6} />;
   }
   const handleRemoveFromWatchLater = async (watchLaterId: string) => {
     try {

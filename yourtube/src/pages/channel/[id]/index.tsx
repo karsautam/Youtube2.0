@@ -5,6 +5,7 @@ import VideoUploader from "@/components/VideoUploader";
 import { useUser } from "@/lib/AuthContext";
 import axiosInstance from "@/lib/axiosinstance";
 import { useRouter } from "next/router";
+import { VideoSkeletonGrid } from "@/components/ui/skeleton";
 import React, { useCallback, useEffect, useState } from "react";
 
 const index = () => {
@@ -44,7 +45,16 @@ const index = () => {
   }, [fetchVideos]);
 
   if (loading) {
-    return <div className="flex-1 p-6 text-muted-foreground">Loading channel...</div>;
+    return (
+      <div className="flex-1 p-6">
+        <div className="mx-auto max-w-6xl">
+          <div className="animate-pulse h-32 rounded-xl bg-muted" />
+          <div className="mt-8">
+            <VideoSkeletonGrid count={9} />
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (!channel) {

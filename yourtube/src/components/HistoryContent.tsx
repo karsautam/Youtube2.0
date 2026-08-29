@@ -15,6 +15,7 @@ import {
 import axiosInstance from "@/lib/axiosinstance";
 import { useUser } from "@/lib/AuthContext";
 import mediaUrl from "@/lib/mediaUrl";
+import { ListRowSkeleton } from "@/components/ui/skeleton";
 
 export default function HistoryContent() {
   const [history, setHistory] = useState<any[]>([]);
@@ -42,7 +43,7 @@ export default function HistoryContent() {
     }
   };
   if (loading) {
-    return <div>Loading history...</div>;
+    return <ListRowSkeleton count={6} />;
   }
 
   const handleRemoveFromHistory = async (historyId: string) => {

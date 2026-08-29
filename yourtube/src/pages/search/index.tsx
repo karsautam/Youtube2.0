@@ -1,4 +1,5 @@
 import SearchResult from "@/components/SearchResult";
+import { ListRowSkeleton } from "@/components/ui/skeleton";
 import { useRouter } from "next/router";
 import React, { Suspense } from "react";
 
@@ -15,7 +16,7 @@ const index = () => {
             </h1>
           </div>
         )}
-        <Suspense fallback={<div>Loading search results...</div>}>
+        <Suspense fallback={<ListRowSkeleton count={6} />}>
           <SearchResult query={q || ""} />
         </Suspense>
       </div>

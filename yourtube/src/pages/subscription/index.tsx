@@ -3,6 +3,7 @@ import { useUser } from "@/lib/AuthContext";
 import axiosInstance from "@/lib/axiosinstance";
 import { Check, X, Crown, ChevronDown, ChevronUp, Download, Play, Shield, Zap, Clock, CreditCard, Receipt, AlertCircle } from "lucide-react";
 import Script from "next/script";
+import { PlansSkeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 
 interface PlanFeature {
@@ -203,7 +204,7 @@ export default function SubscriptionPage() {
   };
 
   if (loading) {
-    return <main className="flex-1 p-6"><div className="max-w-6xl mx-auto text-center py-20 text-muted-foreground">Loading...</div></main>;
+    return <main className="flex-1 p-6"><div className="max-w-6xl mx-auto"><PlansSkeleton /></div></main>;
   }
 
   const currentPlanTier = subStatus?.plan || "free";

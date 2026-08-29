@@ -6,6 +6,7 @@ import { format } from "date-fns";
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
 import { MoreVertical, Trash2 } from "lucide-react";
+import { ListRowSkeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import {
   DropdownMenu,
@@ -68,7 +69,7 @@ const Downloads = () => {
         {!user ? (
           <p className="text-muted-foreground">Sign in to see your downloads.</p>
         ) : loading ? (
-          <p className="text-muted-foreground">Loading...</p>
+          <ListRowSkeleton count={6} />
         ) : downloads.length === 0 ? (
           <p className="text-muted-foreground">No downloads yet.</p>
         ) : (

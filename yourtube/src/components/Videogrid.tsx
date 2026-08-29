@@ -1,33 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Videocard from "./videocard";
 import axiosInstance from "@/lib/axiosinstance";
-
-export function VideoCardSkeleton() {
-  return (
-    <div className="animate-pulse">
-      <div className="aspect-video rounded-lg bg-muted" />
-      <div className="mt-3 flex gap-3">
-        <div className="h-9 w-9 shrink-0 rounded-full bg-muted" />
-        <div className="flex-1 min-w-0 space-y-2">
-          <div className="h-6 w-full rounded bg-muted" />
-          <div className="h-6 w-2/3 rounded bg-muted" />
-          <div className="mt-1 h-5 w-1/2 rounded bg-muted/70" />
-          <div className="h-5 w-1/3 rounded bg-muted/70" />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-export function VideoSkeletonGrid({ count = 9 }: { count?: number }) {
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-8">
-      {Array.from({ length: count }).map((_, i) => (
-        <VideoCardSkeleton key={i} />
-      ))}
-    </div>
-  );
-}
+import { VideoCardSkeleton } from "@/components/ui/skeleton";
 
 const Videogrid = () => {
   const [videos, setvideo] = useState<any[]>([]);

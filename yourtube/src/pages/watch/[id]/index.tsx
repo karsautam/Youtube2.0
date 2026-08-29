@@ -4,6 +4,7 @@ import VideoInfo from "@/components/VideoInfo";
 import Videopplayer from "@/components/Videopplayer";
 import axiosInstance from "@/lib/axiosinstance";
 import BACKEND_URL from "@/lib/backendUrl";
+import { PlayerSkeleton } from "@/components/ui/skeleton";
 import { notFound } from "next/navigation";
 import { useRouter } from "next/router";
 import React, { useEffect, useMemo, useState } from "react";
@@ -62,7 +63,13 @@ const index = () => {
   //   },
   // ];
   if (loading) {
-    return <div>Loading..</div>;
+    return (
+      <main className="flex-1 min-w-0 p-3 md:p-4">
+        <div className="mx-auto max-w-[1600px]">
+          <PlayerSkeleton />
+        </div>
+      </main>
+    );
   }
   
   if (!videos) {
