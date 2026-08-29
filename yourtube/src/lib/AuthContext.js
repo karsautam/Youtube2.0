@@ -16,13 +16,6 @@ import { useEffect, useContext } from "react";
 
 const UserContext = createContext();
 
-const isMobileDevice = () => {
-  if (typeof window === "undefined") return false;
-  return /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|Mobile/i.test(
-    navigator.userAgent
-  );
-};
-
 export const UserProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [authError, setAuthError] = useState(null);
@@ -53,11 +46,6 @@ export const UserProvider = ({ children }) => {
   const handlegooglesignin = async () => {
     clearAuthError();
     try {
-      if (isMobileDevice()) {
-        sessionStorage.setItem("yt_redirect_pending", "1");
-        await signInWithRedirect(auth, provider);
-        return;
-      }
       const result = await signInWithPopup(auth, provider);
       await syncBackendUser(result.user);
     } catch (error) {
@@ -67,6 +55,7 @@ export const UserProvider = ({ children }) => {
         error?.code === "auth/operation-not-supported-in-this-environment"
       ) {
         try {
+          sessionStorage.setItem("yt_redirect_pending", "1");
           await signInWithRedirect(auth, provider);
           return;
         } catch (redirectError) {
