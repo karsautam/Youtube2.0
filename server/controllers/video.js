@@ -3,7 +3,7 @@ import { execFile } from "child_process";
 import fs from "fs";
 import path from "path";
 import { promisify } from "util";
-import { uploadMedia } from "../cloudinary.js";
+import { uploadMedia, lastUploadError } from "../cloudinary.js";
 import { v2 as cloudinary } from "cloudinary";
 
 const execFileAsync = promisify(execFile);
@@ -334,7 +334,7 @@ export const streamToCloudinary = async (req, res) => {
     }
 
     if (!secure_url) {
-      return res.status(500).json({ message: "Upload failed" });
+      return res.status(500).json({ message: "Upload failed", detail: lastUploadError });
     }
 
     const subtitles = [];

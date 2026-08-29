@@ -25,4 +25,12 @@ routes.post(
 );
 routes.post("/upload-cover", upload.single("cover"), uploadCover);
 routes.post("/save-direct-upload", saveDirectUpload);
+routes.get("/debug-env", (req, res) => {
+  res.json({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME || null,
+    api_key_set: !!process.env.CLOUDINARY_API_KEY,
+    api_secret_set: !!process.env.CLOUDINARY_API_SECRET,
+    skip_renditions: process.env.SKIP_RENDITIONS || null,
+  });
+});
 export default routes;

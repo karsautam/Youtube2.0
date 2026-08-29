@@ -18,10 +18,13 @@ export async function uploadMedia(filePath, resourceType = "video") {
     });
     return result.secure_url;
   } catch (error) {
+    lastUploadError = error?.message || String(error);
     console.error(`cloudinary upload failed (${resourceType}):`, error?.message);
     return null;
   }
 }
+
+export let lastUploadError = null;
 
 export function destroyMedia(publicId, resourceType = "video") {
   return cloudinary.uploader
