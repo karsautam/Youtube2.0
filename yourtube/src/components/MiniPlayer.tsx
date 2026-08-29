@@ -145,7 +145,7 @@ export default function MiniPlayer() {
   return (
     <div
       ref={boxRef}
-      className="fixed z-[60] w-72 sm:w-80 rounded-xl overflow-hidden shadow-2xl border border-border bg-background"
+      className="fixed z-[60] w-56 sm:w-80 rounded-xl overflow-hidden shadow-2xl border border-border bg-background"
       style={{
         bottom: 80,
         right: 16,
@@ -181,10 +181,10 @@ export default function MiniPlayer() {
           </div>
         </div>
       </div>
-      <div className="flex items-start gap-2 px-3 py-2">
+      <div className="flex items-start gap-2 px-2.5 py-1.5">
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium line-clamp-1">{video.title}</p>
-          <p className="text-xs text-muted-foreground">{video.channel}</p>
+          <p className="text-xs sm:text-sm font-medium line-clamp-1">{video.title}</p>
+          <p className="text-[11px] sm:text-xs text-muted-foreground">{video.channel}</p>
         </div>
         <button
           onClick={handleClose}
