@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { Avatar, AvatarFallback } from "./ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import mediaUrl from "@/lib/mediaUrl";
 import { registerVideo } from "@/lib/video-manager";
 import { cn } from "@/lib/utils";
@@ -136,6 +136,9 @@ export default function VideoCard({ video }: any) {
         <div className="flex gap-3">
           <Link href={`/channel/${video?.uploader}`} onClick={(e) => e.stopPropagation()}>
             <Avatar className="w-9 h-9 flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-primary/30">
+              {video?.uploaderImage ? (
+                <AvatarImage src={video.uploaderImage} />
+              ) : null}
               <AvatarFallback>{video?.videochanel?.[0] || "?"}</AvatarFallback>
             </Avatar>
           </Link>

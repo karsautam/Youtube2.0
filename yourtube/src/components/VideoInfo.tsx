@@ -1,5 +1,5 @@
 ﻿import React, { useEffect, useRef, useState } from "react";
-import { Avatar, AvatarFallback } from "./ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Button } from "./ui/button";
 import {
   CheckCircle,
@@ -462,6 +462,9 @@ const VideoInfo = ({ video }: any) => {
             aria-label="Open channel"
           >
             <Avatar className="w-10 h-10 shrink-0">
+              {video.uploaderImage ? (
+                <AvatarImage src={video.uploaderImage} />
+              ) : null}
               <AvatarFallback>{video.videochanel?.[0]}</AvatarFallback>
             </Avatar>
           </button>

@@ -1,4 +1,5 @@
 import video from "../Modals/video.js";
+import usersAuth from "../Modals/Auth.js";
 import { execFile } from "child_process";
 import fs from "fs";
 import path from "path";
@@ -290,7 +291,24 @@ export const deletevideo = async (req, res) => {
 export const getallvideo = async (req, res) => {
   try {
     const files = await video.find();
-    return res.status(200).send(files);
+    const uploaderIds = [
+      ...new Set(files.map((f) => f.uploader).filter(Boolean)),
+    ];
+    let userPics = {};
+    if (uploaderIds.length) {
+      const users = await usersAuth
+        .find({ _id: { $in: uploaderIds } })
+        .select("image")
+        .lean();
+      userPics = Object.fromEntries(
+        users.map((u) => [String(u._id), u.image || ""])
+      );
+    }
+    const enriched = files.map((f) => ({
+      ...f.toObject(),
+      uploaderImage: userPics[f.uploader] || "",
+    }));
+    return res.status(200).send(enriched);
   } catch (error) {
     console.error(" error:", error);
     return res.status(500).json({ message: "Something went wrong" });
