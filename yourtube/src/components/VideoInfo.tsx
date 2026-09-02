@@ -307,7 +307,7 @@ const VideoInfo = ({ video }: any) => {
       setIsDownloaded(true);
       toast.success(
         res.data.duplicate
-          ? "You downloaded this recently â€” resuming file"
+          ? "You downloaded this recently — resuming file"
           : "Download started"
       );
       window.open(

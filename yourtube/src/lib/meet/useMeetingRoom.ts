@@ -125,6 +125,7 @@ export function useMeetingRoom({
   const coHostIdsRef = useRef<Set<string>>(new Set());
   const joinedRef = useRef(false);
   const exitedRef = useRef(false);
+  const joinAttemptedRef = useRef(false);
   const qualityTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startedAtRef = useRef<number>(
     startedAt ? new Date(startedAt).getTime() : Date.now()
@@ -133,6 +134,21 @@ export function useMeetingRoom({
   const emit = useCallback((event: string, payload?: any) => {
     getSocket().emit(event, payload);
   }, []);
+
+  const tryJoin = useCallback(() => {
+    const socket = getSocket();
+    if (joinAttemptedRef.current || !socket.connected) return;
+    if (!mediaRef.current?.mediaReady) return;
+    joinAttemptedRef.current = true;
+    socket.emit("meet:join", {
+      roomId,
+      token,
+      user,
+      reconnectKey,
+      micOn: mediaRef.current?.micOn ?? true,
+      camOn: mediaRef.current?.camOn ?? true,
+    });
+  }, [roomId, token, user, reconnectKey]);
 
   // ---------- participant store helpers ----------
   const setParticipantsAll = useCallback((list: Participant[]) => {
@@ -193,6 +209,23 @@ export function useMeetingRoom({
       }
     },
     [emit]
+  );
+
+  const sendOfferWhenStable = useCallback(
+    (socketId: string, attempts = 0) => {
+      const peer = peersRef.current.get(socketId);
+      if (!peer) return;
+      if (peer.pc.signalingState === "stable") {
+        void sendOffer(socketId);
+        return;
+      }
+      if (attempts < 8) {
+        setTimeout(() => sendOfferWhenStable(socketId, attempts + 1), 500);
+      } else {
+        console.warn("renegotiation deferred for", socketId);
+      }
+    },
+    [sendOffer]
   );
 
   const createPeer = useCallback(
@@ -326,12 +359,19 @@ export function useMeetingRoom({
       ids.map(async (socketId) => {
         const peer = peersRef.current.get(socketId);
         if (!peer) return;
-        const sender = peer.pc.getSenders().find((s) => s.track?.kind === "video");
-        if (sender) {
-          try {
-            await sender.replaceTrack(track);
-          } catch {}
-        }
+        const senders = peer.pc
+          .getTransceivers()
+          .filter((tr) => tr.receiver?.track?.kind === "video")
+          .map((tr) => tr.sender)
+          .filter((s): s is RTCRtpSender => Boolean(s));
+        if (senders.length === 0) return;
+        await Promise.all(
+          senders.map(async (sender) => {
+            try {
+              await sender.replaceTrack(track);
+            } catch {}
+          })
+        );
       })
     );
   }, []);
@@ -388,6 +428,8 @@ export function useMeetingRoom({
       for (const peer of peersRef.current.values()) {
         const sender = peer.pc.getSenders().find((s) => s.track?.kind === "video");
         if (!sender) continue;
+        const track = sender.track;
+        if (!track || track.readyState !== "live" || !track.enabled) continue;
         try {
           const params = sender.getParameters();
           if (!params.encodings || params.encodings.length === 0) continue;
@@ -606,9 +648,11 @@ export function useMeetingRoom({
 
   useEffect(() => {
     if (!joinedRef.current) return;
-    void replaceVideoTracksAll(media.getActiveVideoTrack());
+    const sendVideo = media.presenting || media.camOn;
+    const track = sendVideo ? media.getActiveVideoTrack() : null;
+    void replaceVideoTracksAll(track);
     emit("screen:state", { on: media.presenting });
-  }, [media.presenting, emit, replaceVideoTracksAll]);
+  }, [media.presenting, media.camOn, emit, replaceVideoTracksAll]);
 
   // add tracks to existing peers once local media is ready
   useEffect(() => {
@@ -627,8 +671,8 @@ export function useMeetingRoom({
     if (media.presenting) {
       void replaceVideoTracksAll(media.getActiveVideoTrack());
     }
-    ids.forEach((id) => void sendOffer(id));
-  }, [media.localStream, media.presenting, replaceVideoTracksAll, sendOffer]);
+    ids.forEach((id) => sendOfferWhenStable(id));
+  }, [media.localStream, media.presenting, replaceVideoTracksAll, sendOfferWhenStable]);
 
   const toggleRaiseHand = useCallback(() => {
     const next = !handRaised;
@@ -745,20 +789,14 @@ export function useMeetingRoom({
     const socket = getSocket();
     const h = () => handlersRef.current;
     const disconnectHandler = () => {
+      joinAttemptedRef.current = false;
       if (joinedRef.current && !exitedRef.current) {
         setConnectionState("reconnecting");
       }
     };
 
     socket.on("connect", () => {
-      socket.emit("meet:join", {
-        roomId,
-        token,
-        user,
-        reconnectKey,
-        micOn: mediaRef.current?.micOn ?? true,
-        camOn: mediaRef.current?.camOn ?? true,
-      });
+      tryJoin();
     });
     socket.on("meet:joined", (data: any) => h().bootstrap(data));
     socket.on("meet:reconnected", (data: any) => h().bootstrap(data));
@@ -818,7 +856,14 @@ export function useMeetingRoom({
         "connect_error",
       ].forEach((ev) => socket.off(ev as any));
     };
-  }, [roomId, token, user, reconnectKey]);
+  }, [roomId, token, user, reconnectKey, tryJoin]);
+
+  // Join as soon as both socket is connected and local media is ready,
+  // so peer offers carry local tracks from the very first negotiation.
+  useEffect(() => {
+    if (!media.mediaReady || joinedRef.current) return;
+    tryJoin();
+  }, [media.mediaReady, tryJoin]);
 
   // duration timer
   useEffect(() => {

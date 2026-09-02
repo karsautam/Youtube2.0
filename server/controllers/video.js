@@ -229,15 +229,21 @@ export const uploadvideo = async (req, res) => {
 
       let finalFilepath = filepath;
       let finalThumbnail = thumbnail;
+      const cloudUrl = await uploadMedia(videoFile.path, "video");
       const qualities = renditionsEnabled()
         ? await generateRenditionsCloud(videoFile.path)
         : [];
-      const cloudUrl = await uploadMedia(videoFile.path, "video");
       if (cloudUrl) {
         finalFilepath = cloudUrl;
         if (thumbnail && fs.existsSync(thumbnail)) {
           const cloudThumb = await uploadMedia(thumbnail, "image");
           if (cloudThumb) finalThumbnail = cloudThumb;
+        }
+        for (const q of qualities) {
+          if (q.filepath && !/^https?:\/\//i.test(q.filepath) && fs.existsSync(q.filepath)) {
+            q.filepath = cloudUrl;
+            break;
+          }
         }
       }
 

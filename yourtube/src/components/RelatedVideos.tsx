@@ -44,7 +44,7 @@ export default function RelatedVideos({ videos }: RelatedVideosProps) {
             </h3>
             <p className="text-xs text-muted-foreground mt-1">{video.videochanel}</p>
             <p className="text-xs text-muted-foreground">
-              {video.views.toLocaleString()} views â€¢{" "}
+              {video.views.toLocaleString()} views •{" "}
               {formatDistanceToNow(new Date(video.createdAt))} ago
             </p>
           </div>

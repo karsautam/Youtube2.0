@@ -102,7 +102,7 @@ const SearchResult = ({ query }: any) => {
 
                 <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
                   <span>{video.views.toLocaleString()} views</span>
-                  <span>â€¢</span>
+                  <span>•</span>
                   <span>
                     {formatDistanceToNow(new Date(video.createdAt))} ago
                   </span>

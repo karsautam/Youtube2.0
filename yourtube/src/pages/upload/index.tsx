@@ -27,7 +27,7 @@ const UploadPage = () => {
           onUploaded={() => router.pathname !== "/" && router.push("/")}
         />
         <p className="text-xs text-muted-foreground mt-3">
-          Uploaded without selecting a channel â€” it will be listed as
+          Uploaded without selecting a channel — it will be listed as
           &quot;Standalone&quot;.
         </p>
       </div>

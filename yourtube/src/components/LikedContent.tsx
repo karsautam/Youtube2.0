@@ -126,7 +126,7 @@ export default function LikedVideosContent() {
                 {item.videoid.videochanel}
               </p>
               <p className="text-sm text-muted-foreground">
-                {item.videoid.views.toLocaleString()} views â€¢{" "}
+                {item.videoid.views.toLocaleString()} views •{" "}
                 {formatDistanceToNow(new Date(item.videoid.createdAt))} ago
               </p>
               <p className="text-xs text-muted-foreground mt-1">

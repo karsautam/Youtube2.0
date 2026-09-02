@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 function formatSize(bytes: number): string {
-  if (!bytes || bytes <= 0) return "â€”";
+  if (!bytes || bytes <= 0) return "—";
   const mb = bytes / (1024 * 1024);
   if (mb >= 1024) return `${(mb / 1024).toFixed(2)} GB`;
   return `${mb.toFixed(1)} MB`;
@@ -145,7 +145,7 @@ const Downloads = () => {
           </div>
         )}
         <Button variant="ghost" asChild className="mt-6">
-          <Link href="/">â† Back to home</Link>
+          <Link href="/">← Back to home</Link>
         </Button>
       </div>
     </div>

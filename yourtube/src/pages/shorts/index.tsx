@@ -76,7 +76,7 @@ function ShortItem({ video }: { video: any }) {
           <div className="flex size-16 items-center justify-center rounded-full bg-red-600/80">
             <PlaySquare className="size-8 text-white" />
           </div>
-          <span className="text-sm font-medium text-white/80">Loadingâ€¦</span>
+          <span className="text-sm font-medium text-white/80">Loading…</span>
         </div>
       )}
 
@@ -107,7 +107,7 @@ function ShortItem({ video }: { video: any }) {
             #{video?.videotitle} #shorts
           </p>
           <p className="mt-1 text-xs text-white/70">
-            {video?.videochanel} â€¢ {(video?.views ?? 0).toLocaleString()} views
+            {video?.videochanel} • {(video?.views ?? 0).toLocaleString()} views
           </p>
         </Link>
       </div>

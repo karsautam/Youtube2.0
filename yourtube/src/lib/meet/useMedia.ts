@@ -19,6 +19,7 @@ export type MediaManager = {
   presenting: boolean;
   permissionError: string | null;
   requesting: boolean;
+  mediaReady: boolean;
   devices: { audio: MediaDeviceInfo[]; video: MediaDeviceInfo[] };
   startMedia: () => Promise<void>;
   toggleMic: () => void;
@@ -43,6 +44,7 @@ export function useMedia(
   const [presenting, setPresenting] = useState(false);
   const [permissionError, setPermissionError] = useState<string | null>(null);
   const [requesting, setRequesting] = useState(false);
+  const [mediaReady, setMediaReady] = useState(false);
   const [devices, setDevices] = useState<{
     audio: MediaDeviceInfo[];
     video: MediaDeviceInfo[];
@@ -86,7 +88,10 @@ export function useMedia(
   }, []);
 
   const startMedia = useCallback(async () => {
-    if (streamRef.current) return;
+    if (streamRef.current) {
+      setMediaReady(true);
+      return;
+    }
     setRequesting(true);
     setPermissionError(null);
     try {
@@ -142,6 +147,7 @@ export function useMedia(
       );
     } finally {
       setRequesting(false);
+      setMediaReady(true);
     }
   }, [applyTrackState, refreshDevices]);
 
@@ -256,6 +262,7 @@ export function useMedia(
     presenting,
     permissionError,
     requesting,
+    mediaReady,
     devices,
     startMedia,
     toggleMic,

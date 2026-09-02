@@ -28,11 +28,35 @@ export default function ParticipantTile({ participant, stream, isSelf }: Props) 
 
   useEffect(() => {
     const el = videoRef.current;
-    if (el && stream) {
+    if (!el || !stream) return;
+    if (el.srcObject !== stream) el.srcObject = stream;
+    el.play().catch(() => {});
+  }, [stream]);
+
+  useEffect(() => {
+    const el = videoRef.current;
+    if (!el || !stream) return;
+    const bind = () => {
+      if (!el) return;
       if (el.srcObject !== stream) el.srcObject = stream;
       el.play().catch(() => {});
+    };
+    const tracks = stream.getVideoTracks();
+    const track = tracks[0];
+    if (track) {
+      track.addEventListener("mute", bind);
+      track.addEventListener("unmute", bind);
+      track.addEventListener("ended", bind);
     }
-  }, [stream]);
+    bind();
+    return () => {
+      if (track) {
+        track.removeEventListener("mute", bind);
+        track.removeEventListener("unmute", bind);
+        track.removeEventListener("ended", bind);
+      }
+    };
+  }, [stream, participant.socketId]);
 
   const hasVideo = stream?.getVideoTracks().some((t) => t.readyState === "live");
   const camHidden = !hasVideo || !participant.camOn || participant.reconnecting;
@@ -73,7 +97,7 @@ export default function ParticipantTile({ participant, stream, isSelf }: Props) 
       {participant.reconnecting && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-slate-900/70 text-white">
           <span className="h-8 w-8 animate-spin rounded-full border-2 border-white border-t-transparent" />
-          <span className="text-sm">Reconnectingâ€¦</span>
+          <span className="text-sm">Reconnecting…</span>
         </div>
       )}
 
