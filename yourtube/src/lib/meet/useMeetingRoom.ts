@@ -263,14 +263,15 @@ export function useMeetingRoom({
         }
       };
       pc.ontrack = (e) => {
-        if (e.streams?.[0]) {
-          e.streams[0].getTracks().forEach((t) => {
-            if (!peer.stream.getTracks().some((x) => x.id === t.id)) {
-              peer.stream.addTrack(t);
-            }
-          });
-        } else if (!peer.stream.getTracks().some((x) => x.id === e.track.id)) {
-          peer.stream.addTrack(e.track);
+        const incoming = e.streams?.[0] ? e.streams[0].getTracks() : [e.track];
+        for (const t of incoming) {
+          const existing = peer.stream
+            .getTracks()
+            .find((x) => x.kind === t.kind);
+          if (existing) peer.stream.removeTrack(existing);
+          if (!peer.stream.getTracks().some((x) => x.id === t.id)) {
+            peer.stream.addTrack(t);
+          }
         }
         setParticipantStreams((prev) => ({
           ...prev,

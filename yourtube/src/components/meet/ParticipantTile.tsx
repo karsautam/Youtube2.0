@@ -33,6 +33,13 @@ export default function ParticipantTile({ participant, stream, isSelf }: Props) 
     el.play().catch(() => {});
   }, [stream]);
 
+  const trackSig = stream
+    ? stream
+        .getVideoTracks()
+        .map((t) => `${t.kind}:${t.id}:${t.muted}:${t.readyState}`)
+        .join("|")
+    : "";
+
   useEffect(() => {
     const el = videoRef.current;
     if (!el || !stream) return;
@@ -56,7 +63,7 @@ export default function ParticipantTile({ participant, stream, isSelf }: Props) 
         track.removeEventListener("ended", bind);
       }
     };
-  }, [stream, participant.socketId]);
+  }, [stream, participant.socketId, trackSig]);
 
   const hasVideo = stream?.getVideoTracks().some((t) => t.readyState === "live");
   const camHidden = !hasVideo || !participant.camOn || participant.reconnecting;
