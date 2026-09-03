@@ -1,12 +1,15 @@
 ﻿import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   Hand,
   Maximize,
   Mic,
   MicOff,
+  Minimize,
   MonitorUp,
   Video,
   VideoOff,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -68,25 +71,18 @@ export default function ParticipantTile({ participant, stream, isSelf }: Props) 
     };
   }, [stream, participant.socketId, trackSig, participant.camOn]);
 
-  const toggleFullscreen = async () => {
-    const el = containerRef.current;
-    if (!el) return;
-    try {
-      if (!document.fullscreenElement) {
-        await el.requestFullscreen();
-      } else {
-        await document.exitFullscreen();
-      }
-    } catch {
-      // ignore fullscreen errors (unsupported / denied)
-    }
+  const toggleFullscreen = () => {
+    setIsFullscreen((v) => !v);
   };
 
   useEffect(() => {
-    const onChange = () => setIsFullscreen(Boolean(document.fullscreenElement));
-    document.addEventListener("fullscreenchange", onChange);
-    return () => document.removeEventListener("fullscreenchange", onChange);
-  }, []);
+    if (!isFullscreen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIsFullscreen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [isFullscreen]);
 
   const hasVideo = stream?.getVideoTracks().some((t) => t.readyState === "live");
   const camHidden = !hasVideo || !participant.camOn || participant.reconnecting;
@@ -98,9 +94,7 @@ export default function ParticipantTile({ participant, stream, isSelf }: Props) 
         "relative aspect-video w-full overflow-hidden rounded-xl bg-slate-800 border-2",
         participant.speaking && !isSelf
           ? "border-emerald-500"
-          : "border-transparent",
-        isFullscreen &&
-          "aspect-auto bg-black rounded-none border-transparent min-h-screen"
+          : "border-transparent"
       )}
     >
       {stream && hasVideo && participant.camOn && !participant.reconnecting ? (
@@ -111,8 +105,7 @@ export default function ParticipantTile({ participant, stream, isSelf }: Props) 
           muted={isSelf}
           className={cn(
             "h-full w-full object-cover",
-            isSelf && "-scale-x-100",
-            isFullscreen && "object-contain"
+            isSelf && "-scale-x-100"
           )}
         />
       ) : (
@@ -133,11 +126,20 @@ export default function ParticipantTile({ participant, stream, isSelf }: Props) 
 
       <button
         onClick={toggleFullscreen}
-        title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
-        className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-md bg-black/50 text-white transition hover:bg-black/70"
+        title="Fullscreen"
+        className="absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-md bg-black/50 text-white transition hover:bg-black/70"
       >
         <Maximize className="h-4 w-4" />
       </button>
+
+      {isFullscreen && (
+        <FullscreenView
+          participant={participant}
+          stream={stream}
+          isSelf={isSelf}
+          onClose={() => setIsFullscreen(false)}
+        />
+      )}
 
       {participant.reconnecting && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-slate-900/70 text-white">
@@ -195,6 +197,105 @@ export default function ParticipantTile({ participant, stream, isSelf }: Props) 
         </span>
       </div>
     </div>
+  );
+}
+
+function FullscreenView({
+  participant,
+  stream,
+  isSelf,
+  onClose,
+}: {
+  participant: Participant;
+  stream: MediaStream | null;
+  isSelf?: boolean;
+  onClose: () => void;
+}) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const el = videoRef.current;
+    if (!el || !stream) return;
+    if (el.srcObject !== stream) el.srcObject = stream;
+    el.play().catch(() => {});
+  }, [stream]);
+
+  const trackSig = stream
+    ? stream
+        .getVideoTracks()
+        .map((t) => `${t.kind}:${t.id}:${t.muted}:${t.readyState}`)
+        .join("|")
+    : "";
+
+  useEffect(() => {
+    const el = videoRef.current;
+    if (!el || !stream) return;
+    const bind = () => {
+      if (!el) return;
+      if (el.srcObject !== stream) el.srcObject = stream;
+      el.play().catch(() => {});
+    };
+    const track = stream.getVideoTracks()[0];
+    if (track) {
+      track.addEventListener("mute", bind);
+      track.addEventListener("unmute", bind);
+      track.addEventListener("ended", bind);
+    }
+    bind();
+    return () => {
+      if (track) {
+        track.removeEventListener("mute", bind);
+        track.removeEventListener("unmute", bind);
+        track.removeEventListener("ended", bind);
+      }
+    };
+  }, [stream, trackSig]);
+
+  const hasVideo = stream?.getVideoTracks().some((t) => t.readyState === "live");
+  const showVideo = hasVideo && participant.camOn && !participant.reconnecting;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[100] bg-black">
+      <button
+        onClick={onClose}
+        title="Exit fullscreen (Esc)"
+        className="absolute right-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-white transition hover:bg-black/80"
+      >
+        <Minimize className="h-5 w-5" />
+      </button>
+
+      <button
+        onClick={onClose}
+        title="Close"
+        className="absolute left-4 top-4 z-10 flex items-center gap-2 rounded-full bg-black/60 px-3 py-1.5 text-sm text-white transition hover:bg-black/80"
+      >
+        <X className="h-4 w-4" />
+        <span>{participant.name}</span>
+      </button>
+
+      {showVideo ? (
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted={isSelf}
+          className={cn(
+            "h-full w-full object-contain",
+            isSelf && "-scale-x-100"
+          )}
+        />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center bg-black">
+          <Avatar className="h-32 w-32">
+            <AvatarImage src={participant.image} />
+            <AvatarFallback className="text-5xl">
+              {participant.name?.[0] || "?"}
+            </AvatarFallback>
+          </Avatar>
+        </div>
+      )}
+    </div>,
+    document.body
   );
 }
 
