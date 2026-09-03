@@ -195,12 +195,53 @@ export function useMedia(
     applyTrackState();
   }, [applyTrackState]);
 
+  const startCamera = useCallback(async () => {
+    const stream = streamRef.current;
+    if (!stream || camRef.current !== true) return;
+    let newTrack: MediaStreamTrack | null = null;
+    try {
+      const got = await navigator.mediaDevices.getUserMedia({
+        video: { ...VIDEO_CONSTRAINTS, facingMode: "user" },
+      });
+      newTrack = got.getVideoTracks()[0] || null;
+      got.getAudioTracks().forEach((t) => t.stop());
+    } catch {
+      // Camera re-acquire failed; fall through to re-enabling existing track.
+    }
+    if (newTrack) {
+      const oldVideo = stream.getVideoTracks()[0];
+      if (oldVideo) {
+        stream.removeTrack(oldVideo);
+        oldVideo.stop();
+      }
+      stream.addTrack(newTrack);
+      cameraTrackRef.current = newTrack;
+      // New stream object reference so consumers + peers rebind to the fresh,
+      // definitely-live track (fixes black self-view after joining cam-off).
+      setLocalStream(new MediaStream(stream.getTracks()));
+    }
+    applyTrackState();
+    notifyVideoTrackChange();
+  }, [applyTrackState, notifyVideoTrackChange]);
+
   const toggleCam = useCallback(() => {
     camRef.current = !camRef.current;
     setCamOn(camRef.current);
     applyTrackState();
+    if (camRef.current) void startCamera();
     notifyVideoTrackChange();
-  }, [applyTrackState, notifyVideoTrackChange]);
+  }, [applyTrackState, notifyVideoTrackChange, startCamera]);
+
+  const setCam = useCallback(
+    (on: boolean) => {
+      camRef.current = on;
+      setCamOn(on);
+      applyTrackState();
+      if (camRef.current) void startCamera();
+      notifyVideoTrackChange();
+    },
+    [applyTrackState, notifyVideoTrackChange, startCamera]
+  );
 
   const setMic = useCallback(
     (on: boolean) => {
@@ -209,16 +250,6 @@ export function useMedia(
       applyTrackState();
     },
     [applyTrackState]
-  );
-
-  const setCam = useCallback(
-    (on: boolean) => {
-      camRef.current = on;
-      setCamOn(on);
-      applyTrackState();
-      notifyVideoTrackChange();
-    },
-    [applyTrackState, notifyVideoTrackChange]
   );
 
   const switchCamera = useCallback(async () => {

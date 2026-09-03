@@ -35,41 +35,20 @@ export default function ParticipantTile({ participant, stream, isSelf }: Props) 
   useEffect(() => {
     const el = videoRef.current;
     if (!el || !stream) return;
-    if (el.srcObject !== stream) el.srcObject = stream;
-    el.play().catch(() => {});
-  }, [stream]);
-
-  const trackSig = stream
-    ? stream
-        .getVideoTracks()
-        .map((t) => `${t.kind}:${t.id}:${t.muted}:${t.readyState}`)
-        .join("|")
-    : "";
-
-  useEffect(() => {
-    const el = videoRef.current;
-    if (!el || !stream) return;
     const bind = () => {
       if (!el) return;
       if (el.srcObject !== stream) el.srcObject = stream;
+      el.muted = Boolean(isSelf);
       el.play().catch(() => {});
     };
-    const tracks = stream.getVideoTracks();
-    const track = tracks[0];
-    if (track) {
-      track.addEventListener("mute", bind);
-      track.addEventListener("unmute", bind);
-      track.addEventListener("ended", bind);
-    }
     bind();
-    return () => {
-      if (track) {
-        track.removeEventListener("mute", bind);
-        track.removeEventListener("unmute", bind);
-        track.removeEventListener("ended", bind);
-      }
-    };
-  }, [stream, participant.socketId, trackSig, participant.camOn]);
+    const track = stream.getVideoTracks()[0];
+    if (track) {
+      const onEnd = () => bind();
+      track.addEventListener("ended", onEnd);
+      return () => track.removeEventListener("ended", onEnd);
+    }
+  }, [stream, isSelf, participant.camOn]);
 
   const toggleFullscreen = () => {
     setIsFullscreen((v) => !v);
@@ -100,6 +79,7 @@ export default function ParticipantTile({ participant, stream, isSelf }: Props) 
     >
       {stream && hasVideo && participant.camOn && !participant.reconnecting ? (
         <video
+          key={`cam-${participant.camOn}-${hasVideo}`}
           ref={videoRef}
           autoPlay
           playsInline
