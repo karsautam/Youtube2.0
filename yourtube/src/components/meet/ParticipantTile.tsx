@@ -1,6 +1,7 @@
-﻿import { useEffect, useRef } from "react";
+﻿import { useEffect, useRef, useState } from "react";
 import {
   Hand,
+  Maximize,
   Mic,
   MicOff,
   MonitorUp,
@@ -25,6 +26,8 @@ const QUALITY_DOT: Record<string, string> = {
 
 export default function ParticipantTile({ participant, stream, isSelf }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
     const el = videoRef.current;
@@ -65,16 +68,39 @@ export default function ParticipantTile({ participant, stream, isSelf }: Props) 
     };
   }, [stream, participant.socketId, trackSig, participant.camOn]);
 
+  const toggleFullscreen = async () => {
+    const el = containerRef.current;
+    if (!el) return;
+    try {
+      if (!document.fullscreenElement) {
+        await el.requestFullscreen();
+      } else {
+        await document.exitFullscreen();
+      }
+    } catch {
+      // ignore fullscreen errors (unsupported / denied)
+    }
+  };
+
+  useEffect(() => {
+    const onChange = () => setIsFullscreen(Boolean(document.fullscreenElement));
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
+
   const hasVideo = stream?.getVideoTracks().some((t) => t.readyState === "live");
   const camHidden = !hasVideo || !participant.camOn || participant.reconnecting;
 
   return (
     <div
+      ref={containerRef}
       className={cn(
         "relative aspect-video w-full overflow-hidden rounded-xl bg-slate-800 border-2",
         participant.speaking && !isSelf
           ? "border-emerald-500"
-          : "border-transparent"
+          : "border-transparent",
+        isFullscreen &&
+          "aspect-auto bg-black rounded-none border-transparent min-h-screen"
       )}
     >
       {stream && hasVideo && participant.camOn && !participant.reconnecting ? (
@@ -85,7 +111,8 @@ export default function ParticipantTile({ participant, stream, isSelf }: Props) 
           muted={isSelf}
           className={cn(
             "h-full w-full object-cover",
-            isSelf && "-scale-x-100"
+            isSelf && "-scale-x-100",
+            isFullscreen && "object-contain"
           )}
         />
       ) : (
@@ -103,6 +130,14 @@ export default function ParticipantTile({ participant, stream, isSelf }: Props) 
           Presenting
         </div>
       )}
+
+      <button
+        onClick={toggleFullscreen}
+        title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+        className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-md bg-black/50 text-white transition hover:bg-black/70"
+      >
+        <Maximize className="h-4 w-4" />
+      </button>
 
       {participant.reconnecting && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-slate-900/70 text-white">
@@ -162,3 +197,4 @@ export default function ParticipantTile({ participant, stream, isSelf }: Props) 
     </div>
   );
 }
+
