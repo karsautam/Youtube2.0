@@ -127,10 +127,12 @@ export function useRecording({ localStream, participantStreams, participants }: 
       if (!stream) continue;
       stream.getAudioTracks().forEach((t) => {
         if (connectedAudioTracksRef.current.has(t.id)) return;
-        const src = ctx.createMediaStreamSource(new MediaStream([t]));
-        src.connect(dest);
-        audioNodesRef.current.push(src);
-        connectedAudioTracksRef.current.add(t.id);
+        try {
+          const src = ctx.createMediaStreamSource(new MediaStream([t]));
+          src.connect(dest);
+          audioNodesRef.current.push(src);
+          connectedAudioTracksRef.current.add(t.id);
+        } catch {}
       });
     }
   };

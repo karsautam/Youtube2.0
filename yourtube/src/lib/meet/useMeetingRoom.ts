@@ -360,11 +360,17 @@ export function useMeetingRoom({
       ids.map(async (socketId) => {
         const peer = peersRef.current.get(socketId);
         if (!peer) return;
-        const senders = peer.pc
-          .getTransceivers()
-          .filter((tr) => tr.receiver?.track?.kind === "video")
-          .map((tr) => tr.sender)
-          .filter((s): s is RTCRtpSender => Boolean(s));
+        if (peer.pc.connectionState === "closed") return;
+        let senders: RTCRtpSender[] = [];
+        try {
+          senders = peer.pc
+            .getTransceivers()
+            .filter((tr) => tr.receiver?.track?.kind === "video")
+            .map((tr) => tr.sender)
+            .filter((s): s is RTCRtpSender => Boolean(s));
+        } catch {
+          return;
+        }
         if (senders.length === 0) return;
         await Promise.all(
           senders.map(async (sender) => {
@@ -374,7 +380,7 @@ export function useMeetingRoom({
           })
         );
       })
-    );
+    ).catch(() => {});
   }, []);
 
   // ---------- quality monitor ----------
@@ -427,7 +433,15 @@ export function useMeetingRoom({
       const target =
         q === "poor" ? 200_000 : q === "good" ? 700_000 : 2_000_000;
       for (const peer of peersRef.current.values()) {
-        const sender = peer.pc.getSenders().find((s) => s.track?.kind === "video");
+        let sender: RTCRtpSender | undefined;
+        try {
+          if (peer.pc.connectionState === "closed") continue;
+          sender = peer.pc
+            .getSenders()
+            .find((s) => s.track?.kind === "video");
+        } catch {
+          continue;
+        }
         if (!sender) continue;
         const track = sender.track;
         if (!track || track.readyState !== "live" || !track.enabled) continue;
