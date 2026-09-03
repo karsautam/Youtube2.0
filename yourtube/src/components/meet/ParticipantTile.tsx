@@ -259,7 +259,10 @@ function FullscreenView({
   const showVideo = hasVideo && participant.camOn && !participant.reconnecting;
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] bg-black">
+    <div
+      className="fixed inset-0 z-[100] bg-black"
+      onClick={(e) => e.stopPropagation()}
+    >
       <button
         onClick={onClose}
         title="Exit fullscreen (Esc)"
