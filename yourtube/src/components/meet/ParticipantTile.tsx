@@ -90,8 +90,9 @@ export default function ParticipantTile({ participant, stream, isSelf }: Props) 
   return (
     <div
       ref={containerRef}
+      onClick={toggleFullscreen}
       className={cn(
-        "relative aspect-video w-full overflow-hidden rounded-xl bg-slate-800 border-2",
+        "relative aspect-video w-full cursor-pointer overflow-hidden rounded-xl bg-slate-800 border-2",
         participant.speaking && !isSelf
           ? "border-emerald-500"
           : "border-transparent"
@@ -125,9 +126,12 @@ export default function ParticipantTile({ participant, stream, isSelf }: Props) 
       )}
 
       <button
-        onClick={toggleFullscreen}
-        title="Fullscreen"
-        className="absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-md bg-black/50 text-white transition hover:bg-black/70"
+        onClick={(e) => {
+          e.stopPropagation();
+          toggleFullscreen();
+        }}
+        title="View fullscreen"
+        className="absolute right-2 top-2 z-50 flex h-8 w-8 items-center justify-center rounded-md bg-black/50 text-white shadow transition hover:bg-black/70"
       >
         <Maximize className="h-4 w-4" />
       </button>
