@@ -665,11 +665,12 @@ export function useMeetingRoom({
     if (!joinedRef.current) return;
     // Always keep a live video sender for each peer. Camera on/off is
     // signaled in-band via track.enabled (handled in useMedia), so we never
-    // replaceTrack(null) here — doing so makes re-enabling the camera flaky
-    // (the remote picture fails to resume after toggling back on).
+    // replaceTrack(null) here — doing so makes re-enabling the camera flaky.
+    // Re-asserting the same live track on camOn forces the sender to push a
+    // fresh keyframe so the remote's frozen/black feed reliably resumes.
     void replaceVideoTracksAll(media.getActiveVideoTrack());
     emit("screen:state", { on: media.presenting });
-  }, [media.presenting, emit, replaceVideoTracksAll]);
+  }, [media.presenting, media.camOn, emit, replaceVideoTracksAll]);
 
   // add tracks to existing peers once local media is ready
   useEffect(() => {
