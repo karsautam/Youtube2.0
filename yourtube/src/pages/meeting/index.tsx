@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
-import { Link as LinkIcon, Plus, Sparkles, Users } from "lucide-react";
+import { ArrowLeft, Link as LinkIcon, Plus, Sparkles, Users } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useUser } from "@/lib/AuthContext";
 import { createMeeting, joinMeeting, parseRoomId } from "@/lib/meet/api";
 import { saveMeetSession } from "@/lib/meet/socketClient";
@@ -90,16 +91,35 @@ export default function MeetHome() {
   return (
     <div className="flex min-h-screen flex-col bg-slate-950 text-white">
       <header className="flex items-center justify-between border-b border-white/10 px-6 py-4">
-        <div className="flex items-center gap-2 text-lg font-semibold">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600">
-            <VideoMark />
-          </span>
-          YourTube Meet
+        <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="flex items-center gap-1.5 text-slate-300 hover:text-white"
+            onClick={() => router.push("/")}
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span className="hidden sm:inline">Back</span>
+          </Button>
+          <div className="flex items-center gap-2 text-lg font-semibold">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600">
+              <VideoMark />
+            </span>
+            YourTube Meet
+          </div>
         </div>
         {user ? (
-          <span className="text-sm text-slate-400">
-            Signed in as <span className="font-medium text-white">{user.name}</span>
-          </span>
+          <div className="flex items-center gap-2.5">
+            <span className="hidden text-sm text-slate-400 sm:inline">
+              Signed in as <span className="font-medium text-white">{user.name}</span>
+            </span>
+            <Avatar className="h-8 w-8 border border-white/20">
+              <AvatarImage src={user.image} alt={user.name} />
+              <AvatarFallback className="bg-slate-700 text-xs">
+                {user.name?.charAt(0)?.toUpperCase() || "U"}
+              </AvatarFallback>
+            </Avatar>
+          </div>
         ) : (
           <Button onClick={handlegooglesignin}>Sign in to join</Button>
         )}

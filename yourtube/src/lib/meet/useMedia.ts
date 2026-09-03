@@ -178,13 +178,22 @@ export function useMedia(
       navigator.mediaDevices?.removeEventListener?.("devicechange", refreshDevices);
   }, [refreshDevices]);
 
+  useEffect(() => {
+    return () => {
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+      screenTrackRef.current?.stop();
+      streamRef.current = null;
+      cameraTrackRef.current = null;
+      screenTrackRef.current = null;
+      setLocalStream(null);
+    };
+  }, []);
+
   const toggleMic = useCallback(() => {
     micRef.current = !micRef.current;
     setMicOn(micRef.current);
-    streamRef.current?.getAudioTracks().forEach((t) => {
-      t.enabled = micRef.current;
-    });
-  }, []);
+    applyTrackState();
+  }, [applyTrackState]);
 
   const toggleCam = useCallback(() => {
     camRef.current = !camRef.current;
@@ -193,13 +202,14 @@ export function useMedia(
     notifyVideoTrackChange();
   }, [applyTrackState, notifyVideoTrackChange]);
 
-  const setMic = useCallback((on: boolean) => {
-    micRef.current = on;
-    setMicOn(on);
-    streamRef.current?.getAudioTracks().forEach((t) => {
-      t.enabled = on;
-    });
-  }, []);
+  const setMic = useCallback(
+    (on: boolean) => {
+      micRef.current = on;
+      setMicOn(on);
+      applyTrackState();
+    },
+    [applyTrackState]
+  );
 
   const setCam = useCallback(
     (on: boolean) => {

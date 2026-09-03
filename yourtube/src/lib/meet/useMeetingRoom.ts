@@ -301,7 +301,13 @@ export function useMeetingRoom({
 
   const handleOffer = useCallback(
     async (from: string, sdp: RTCSessionDescriptionInit) => {
-      const peer = createPeer(from);
+      // If an active peer already exists (e.g. created by handleParticipantJoined
+      // and already negotiating), don't clobber it with createPeer — that would
+      // break the in-flight offer/answer and drop the media feed.
+      let peer = peersRef.current.get(from);
+      if (!peer || peer.pc.connectionState === "closed") {
+        peer = createPeer(from);
+      }
       try {
         await peer.pc.setRemoteDescription(sdp);
       } catch (err) {
@@ -503,7 +509,14 @@ export function useMeetingRoom({
   const handleParticipantJoined = useCallback(
     (p: Participant) => {
       upsertParticipant(p);
-      if (!p.reconnecting) createPeer(p.socketId);
+      if (!p.reconnecting) {
+        // Only create a peer if one doesn't already exist.
+        // handleOffer may have already created it — overwriting here
+        // would destroy the in-progress offer/answer exchange.
+        if (!peersRef.current.has(p.socketId)) {
+          createPeer(p.socketId);
+        }
+      }
     },
     [createPeer, upsertParticipant]
   );
@@ -679,10 +692,15 @@ export function useMeetingRoom({
     for (const [socketId, peer] of peersRef.current) {
       let changed = false;
       media.localStream.getTracks().forEach((t) => {
-        if (!peer.pc.getSenders().some((s) => s.track === t)) {
+        const existing = peer.pc.getSenders().find((s) => s.track === t);
+        if (existing) return;
+        const kindSender = peer.pc.getSenders().find((s) => s.track?.kind === t.kind);
+        if (kindSender) {
+          kindSender.replaceTrack(t).catch(() => {});
+        } else {
           peer.pc.addTrack(t, media.localStream!);
-          changed = true;
         }
+        changed = true;
       });
       if (changed) ids.push(socketId);
     }

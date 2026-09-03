@@ -63,7 +63,7 @@ export default function ParticipantTile({ participant, stream, isSelf }: Props) 
         track.removeEventListener("ended", bind);
       }
     };
-  }, [stream, participant.socketId, trackSig]);
+  }, [stream, participant.socketId, trackSig, participant.camOn]);
 
   const hasVideo = stream?.getVideoTracks().some((t) => t.readyState === "live");
   const camHidden = !hasVideo || !participant.camOn || participant.reconnecting;
@@ -83,7 +83,10 @@ export default function ParticipantTile({ participant, stream, isSelf }: Props) 
           autoPlay
           playsInline
           muted={isSelf}
-          className="h-full w-full object-cover"
+          className={cn(
+            "h-full w-full object-cover",
+            isSelf && "-scale-x-100"
+          )}
         />
       ) : (
         <div className="flex h-full w-full items-center justify-center bg-slate-800">

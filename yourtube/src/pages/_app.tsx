@@ -7,6 +7,7 @@ import KeyboardShortcuts from "@/components/KeyboardShortcuts";
 import NavBar from "@/components/NavBar";
 import MiniPlayer from "@/components/MiniPlayer";
 import HistoryGuard from "@/components/HistoryGuard";
+import { MeetingProvider } from "@/lib/meet/MeetingContext";
 import { MiniPlayerProvider } from "@/lib/MiniPlayerContext";
 import { VideoHistoryProvider } from "@/lib/VideoHistoryContext";
 import { Toaster } from "@/components/ui/sonner";
@@ -29,6 +30,7 @@ export default function App({ Component, pageProps }: AppProps) {
       <UserProvider>
       <MiniPlayerProvider>
       <VideoHistoryProvider>
+      <MeetingProvider>
       <KeyboardShortcuts />
       <div className="min-h-screen bg-background text-foreground">
         <title>Your-Tube Clone</title>
@@ -71,6 +73,7 @@ export default function App({ Component, pageProps }: AppProps) {
         )}
         <MiniPlayer />
       </div>
+      </MeetingProvider>
       </VideoHistoryProvider>
       </MiniPlayerProvider>
     </UserProvider>

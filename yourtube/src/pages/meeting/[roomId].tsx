@@ -6,8 +6,8 @@ import { Input } from "@/components/ui/input";
 import { useUser } from "@/lib/AuthContext";
 import type { JoinInfo } from "@/lib/meet/types";
 import { joinMeeting } from "@/lib/meet/api";
-import { getMeetSession, saveMeetSession } from "@/lib/meet/socketClient";
-import MeetingRoom from "@/components/meet/MeetingRoom";
+import { getMeetSession, saveMeetSession, clearMeetSession } from "@/lib/meet/socketClient";
+import { useMeetingContext } from "@/lib/meet/MeetingContext";
 
 type PageState =
   | { status: "loading" }
@@ -19,6 +19,11 @@ export default function MeetCall() {
   const router = useRouter();
   const roomId = String(router.query.roomId || "").toUpperCase();
   const { user, handlegooglesignin } = useUser();
+  const {
+    joinMeeting: registerMeeting,
+    leaveMeeting,
+    activeMeeting,
+  } = useMeetingContext();
   const [state, setState] = useState<PageState>({ status: "loading" });
   const [passcodeInput, setPasscodeInput] = useState("");
   const [retrying, setRetrying] = useState(false);
@@ -46,6 +51,13 @@ export default function MeetCall() {
         token: info.token,
         passcode: info.passcodeRequired ? (passcode ?? storedPass) : "",
         reconnectKey,
+      });
+      registerMeeting({
+        roomId,
+        token: info.token,
+        user: info.user,
+        passcode: info.passcodeRequired ? (passcode ?? storedPass) : "",
+        startedAt: info.startedAt,
       });
       setState({
         status: "ready",
@@ -87,7 +99,11 @@ export default function MeetCall() {
   }, [roomId, user?.email]);
 
   const handleExit = () => {
-    router.push("/meeting");
+    leaveMeeting();
+    setTimeout(() => {
+      clearMeetSession(roomId);
+      router.push("/meeting");
+    }, 200);
   };
 
   if (!roomId || state.status === "loading") {
@@ -163,17 +179,21 @@ export default function MeetCall() {
     );
   }
 
-  return (
-    <div className="h-screen w-screen overflow-hidden">
-      <MeetingRoom
-        key={`${roomId}-${state.info.user.id}`}
-        roomId={roomId}
-        token={state.info.token}
-        user={state.info.user}
-        passcode={state.passcode}
-        startedAt={state.info.startedAt}
-        onExit={handleExit}
-      />
-    </div>
-  );
+  if (state.status === "ready") {
+    // The active call is rendered by MeetingProvider (kept mounted so it can
+    // float as a picture-in-picture on other pages). The page itself only
+    // needs to contribute the loading / join UI above.
+    if (!activeMeeting || activeMeeting.roomId !== roomId) {
+      // Wait for joinMeeting to register the active meeting.
+      return (
+        <div className="flex h-screen flex-col items-center justify-center gap-4 bg-slate-950 text-white">
+          <span className="h-12 w-12 animate-spin rounded-full border-4 border-blue-500 border-t-transparent" />
+          <p className="text-slate-300">Starting meeting…</p>
+        </div>
+      );
+    }
+    return null;
+  }
+
+  return null;
 }
