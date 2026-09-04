@@ -42,20 +42,6 @@ export default function ParticipantTile({ participant, stream, isSelf }: Props) 
       el.play().catch(() => {});
     };
     bind();
-    if (isSelf) {
-      const vt = stream.getVideoTracks()[0];
-      console.log("[ParticipantTile] self bind camOn:", participant.camOn,
-        "track:", vt ? `${vt.readyState}/${vt.enabled}` : "none",
-        "vw:", el.videoWidth);
-      const onData = () => console.log("[ParticipantTile] self videoWidth:", el.videoWidth, el.videoHeight);
-      el.addEventListener("loadeddata", onData);
-      const t = () => onData();
-      const id = setTimeout(t, 1000);
-      return () => {
-        el.removeEventListener("loadeddata", onData);
-        clearTimeout(id);
-      };
-    }
     const track = stream.getVideoTracks()[0];
     if (track) {
       const onEnd = () => bind();

@@ -205,8 +205,8 @@ export function useMedia(
       });
       newTrack = got.getVideoTracks()[0] || null;
       got.getAudioTracks().forEach((t) => t.stop());
-    } catch (e) {
-      console.warn("[useMedia] startCamera getUserMedia failed", e);
+    } catch {
+      // Camera re-acquire failed; fall through to re-enabling existing track.
     }
     if (newTrack) {
       const oldVideo = stream.getVideoTracks()[0];
@@ -219,9 +219,6 @@ export function useMedia(
       // New stream object reference so consumers + peers rebind to the fresh,
       // definitely-live track (fixes black self-view after joining cam-off).
       setLocalStream(new MediaStream(stream.getTracks()));
-      console.log("[useMedia] startCamera swapped track", newTrack.readyState, "enabled:", newTrack.enabled);
-    } else {
-      console.warn("[useMedia] startCamera got no new track");
     }
     applyTrackState();
     notifyVideoTrackChange();
@@ -233,11 +230,6 @@ export function useMedia(
     applyTrackState();
     if (camRef.current) void startCamera();
     notifyVideoTrackChange();
-
-    const t = cameraTrackRef.current;
-    console.log("[useMedia] toggleCam ->", camRef.current,
-      "track ready:", t ? t.readyState : "none",
-      "enabled:", t ? t.enabled : "-");
   }, [applyTrackState, notifyVideoTrackChange, startCamera]);
 
   const setCam = useCallback(

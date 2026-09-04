@@ -670,8 +670,21 @@ export function useMeetingRoom({
   onSpeakingRef.current = onSpeakingChange;
 
   useEffect(() => {
-    if (joinedRef.current)
-      emit("media:state", { micOn: media.micOn, camOn: media.camOn });
+    if (!joinedRef.current) return;
+    // The server broadcasts media:state to every socket EXCEPT the sender
+    // (socket.to excludes the sender), so the self tile would never learn
+    // about its own camOn/micOn changes. Patch the local self participant
+    // directly so the self tile stays in sync when toggling camera/mic.
+    const selfSocketId = selfRef.current?.socketId;
+    if (selfSocketId) {
+      const p = participantsMapRef.current.get(selfSocketId);
+      if (p) {
+        p.micOn = media.micOn;
+        p.camOn = media.camOn;
+        setParticipants([...participantsMapRef.current.values()]);
+      }
+    }
+    emit("media:state", { micOn: media.micOn, camOn: media.camOn });
   }, [media.micOn, media.camOn, emit]);
 
   useEffect(() => {
