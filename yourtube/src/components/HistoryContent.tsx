@@ -48,8 +48,7 @@ export default function HistoryContent() {
 
   const handleRemoveFromHistory = async (historyId: string) => {
     try {
-      console.log("Removing from history:", historyId);
-
+      await axiosInstance.delete(`/history/${historyId}`);
       setHistory(history.filter((item) => item._id !== historyId));
     } catch (error) {
       console.error("Error removing from history:", error);
@@ -79,11 +78,27 @@ export default function HistoryContent() {
       </div>
     );
   }
+  const handleClearAll = async () => {
+    if (!user) return;
+    try {
+      await axiosInstance.delete(`/history/clear/${user._id}`);
+      setHistory([]);
+    } catch (error) {
+      console.error("Error clearing history:", error);
+    }
+  };
+
   const videos = "/video/vdo.mp4";
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <p className="text-sm text-muted-foreground">{history.length} videos</p>
+        <button
+          onClick={handleClearAll}
+          className="text-sm text-blue-600 hover:underline"
+        >
+          Clear all watch history
+        </button>
       </div>
 
       <div className="space-y-4">
