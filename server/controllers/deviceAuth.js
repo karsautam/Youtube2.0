@@ -9,9 +9,10 @@ const OTP_LENGTH = 6;
 const OTP_TTL_MINUTES = 10;
 const RESEND_COOLDOWN_SECONDS = 60;
 const MAX_ATTEMPTS = 5;
-// Only require OTP when another device has REALLY been used very recently
-// (a different-origin tab or old session should NOT keep asking for a code).
-const OTHER_ACTIVE_WINDOW_MS = Number(process.env.OTP_ACTIVE_WINDOW_MINUTES || 15) * 60 * 1000;
+// Require OTP when another device has been active within this window. Since a
+// successful OTP verification revokes all older sessions, we can afford a wide
+// window (30 days) — stale sessions no longer pile up.
+const OTHER_ACTIVE_WINDOW_MS = Number(process.env.OTP_ACTIVE_WINDOW_MINUTES || 43200) * 60 * 1000;
 
 function hashCode(code) {
   return crypto.createHash("sha256").update(String(code)).digest("hex");
@@ -73,6 +74,7 @@ async function saveSession(userId, deviceId, device) {
     known.browser = device.browser;
     known.os = device.os;
     known.ip = device.ip;
+    known.revoked = false;
     await known.save();
     resolveLocation(device).then((loc) => {
       if (loc) {
@@ -132,11 +134,13 @@ export const login = async (req, res) => {
         user: existingUser._id,
         deviceId: { $ne: deviceId },
         lastSeen: { $gte: new Date(Date.now() - OTHER_ACTIVE_WINDOW_MS) },
+        revoked: { $ne: true },
       })
       .countDocuments();
 
     if (!known && otherActive > 0) {
-      // Second device logging into an already-active account => require OTP.
+      // A NEW device logging into an account that's active on another device.
+      // Allow the login but also flag that this device needs OTP verification.
       const existing = await OTP.findOne({
         email: normalized,
         purpose: "device-login",
@@ -146,10 +150,11 @@ export const login = async (req, res) => {
         const elapsed = (Date.now() - new Date(existing.createdAt).getTime()) / 1000;
         if (elapsed < RESEND_COOLDOWN_SECONDS) {
           const wait = Math.ceil(RESEND_COOLDOWN_SECONDS - elapsed);
-          return res.status(429).json({
-            message: `Please wait ${wait}s before requesting another OTP.`,
+          return res.status(200).json({
+            result: existingUser,
             needOtp: true,
             email: normalized,
+            message: `Please wait ${wait}s before requesting another OTP. Check your email.`,
           });
         }
         await OTP.deleteOne({ _id: existing._id });
@@ -170,13 +175,13 @@ export const login = async (req, res) => {
       const { sent, devCode } = await sendDeviceOtpEmailBounded(normalized, code, device);
 
       return res.status(200).json({
+        result: existingUser,
         needOtp: true,
         email: normalized,
         devCode,
-        // Keep the OTP alive even if the email failed so the fallback code works.
         message: sent
-          ? "This account was used on another device recently. Check your email for a verification code."
-          : "We couldn't send a verification email, so we've shown the code below. Enter it to finish signing in.",
+          ? "Signed in on this device. We emailed a verification code — enter it to confirm and sign out other devices."
+          : "Signed in on this device, but the email failed. Use the code shown below.",
       });
     }
 
@@ -187,6 +192,25 @@ export const login = async (req, res) => {
     return res.status(200).json({ result: existingUser });
   } catch (error) {
     console.error("Login error:", error);
+    return res.status(500).json({ message: "Something went wrong" });
+  }
+};
+
+// Lets the frontend check whether the current device session is still valid.
+// After OTP verification on a new device, older sessions are revoked -> the
+// first device polls this and signs itself out.
+export const checkSessionStatus = async (req, res) => {
+  const userId = req.query?.userId || req.body?.userId;
+  const deviceId = req.query?.deviceId || req.body?.deviceId;
+  if (!userId || !deviceId) {
+    return res.status(400).json({ message: "userId and deviceId are required" });
+  }
+  try {
+    const session = await usersession.findOne({ user: userId, deviceId });
+    const revoked = !session || session.revoked === true;
+    return res.status(200).json({ revoked });
+  } catch (error) {
+    console.error("checkSessionStatus error:", error);
     return res.status(500).json({ message: "Something went wrong" });
   }
 };
@@ -283,10 +307,19 @@ export const verifyDeviceLogin = async (req, res) => {
       return res.status(404).json({ message: "Account not found" });
     }
 
-    // Now that the code verified, register this device as a trusted session.
+    // Code verified. Register this device as the trusted/active session and
+    // REVOKE every other device so the previous device gets signed out.
+    const device = await buildDeviceInfo(req);
     await saveSession(user._id, deviceId, device);
+    await usersession.updateMany(
+      { user: user._id, deviceId: { $ne: deviceId }, revoked: { $ne: true } },
+      { $set: { revoked: true } }
+    );
 
-    return res.status(200).json({ result: user });
+    return res.status(200).json({
+      result: user,
+      message: "Device verified. Other devices have been signed out.",
+    });
   } catch (error) {
     console.error("verifyDeviceLogin error:", error);
     return res.status(500).json({ message: "Something went wrong" });

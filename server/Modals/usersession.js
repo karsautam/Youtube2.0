@@ -14,6 +14,7 @@ const userSessionSchema = mongoose.Schema(
     ip: { type: String, default: "" },
     location: { type: String, default: "" },
     lastSeen: { type: Date, default: Date.now },
+    revoked: { type: Boolean, default: false },
   },
   {
     timestamps: true,

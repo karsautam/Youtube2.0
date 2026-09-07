@@ -33,6 +33,10 @@ export default function OtpVerifyDialog() {
       const res = await verifyDeviceOtp(code.trim());
       if (!res.success) {
         setError("Verification failed. Please try again.");
+      } else {
+        toast.success(
+          res.message || "Device verified. You're signed in."
+        );
       }
     } catch (e: any) {
       setError(e?.response?.data?.message || "Verification failed. Please try again.");

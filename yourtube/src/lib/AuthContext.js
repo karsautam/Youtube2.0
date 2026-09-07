@@ -51,6 +51,11 @@ export const UserProvider = ({ children }) => {
     };
     const response = await axiosInstance.post("/user/login", payload);
     if (response.data && response.data.needOtp) {
+      // Log them in first (they land on the home page), then present the OTP
+      // dialog over whatever page they're on.
+      if (response.data.result) {
+        login(response.data.result);
+      }
       setOtpEmail(response.data.email || firebaseuser.email);
       setOtpDevCode(response.data.devCode || "");
       setPendingOtp(true);
@@ -69,7 +74,7 @@ export const UserProvider = ({ children }) => {
     });
     if (response.data && response.data.result) {
       login(response.data.result);
-      return { success: true };
+      return { success: true, message: response.data.message };
     }
     return { success: false };
   };
@@ -158,6 +163,32 @@ export const UserProvider = ({ children }) => {
     });
     return () => unsubcribe();
   }, []);
+
+  // While signed in, poll session status. When a NEW device verifies its OTP,
+  // this device's session gets revoked -> force sign-out here.
+  useEffect(() => {
+    if (!user || !user._id || pendingOtp) return;
+    let stopped = false;
+    const check = async () => {
+      try {
+        const res = await axiosInstance.get("/user/session-status", {
+          params: { userId: user._id, deviceId: getDeviceId() },
+        });
+        if (!stopped && res.data && res.data.revoked) {
+          await logout();
+        }
+      } catch (error) {
+        // transient network errors are fine; keep polling
+      }
+    };
+    check();
+    const timer = setInterval(check, 10000);
+    return () => {
+      stopped = true;
+      clearInterval(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, pendingOtp, logout]);
 
   return (
     <UserContext.Provider

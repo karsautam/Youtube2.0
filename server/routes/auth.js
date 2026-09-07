@@ -1,5 +1,10 @@
 import express from "express";
-import { login, verifyDeviceLogin, resendDeviceOtp } from "../controllers/deviceAuth.js";
+import {
+  login,
+  verifyDeviceLogin,
+  resendDeviceOtp,
+  checkSessionStatus,
+} from "../controllers/deviceAuth.js";
 import {
   updateprofile,
   getUserById,
@@ -11,6 +16,7 @@ const routes = express.Router();
 routes.post("/login", login);
 routes.post("/verify-device-login", verifyDeviceLogin);
 routes.post("/resend-device-otp", resendDeviceOtp);
+routes.get("/session-status", checkSessionStatus);
 routes.get("/:id", getUserById);
 routes.patch("/update/:id", updateprofile);
 routes.post("/upload-image", upload.single("image"), uploadChannelImage);
