@@ -22,8 +22,58 @@ async function buildDeviceInfo(req) {
   const ua = req.headers["user-agent"];
   const { browser, os, deviceLabel } = parseUserAgent(ua);
   const ip = getIpFromRequest(req);
-  const location = await ipToLocation(ip);
-  return { browser, os, deviceLabel, ip, location };
+  // Resolve location in the background so it never blocks the login response.
+  const locationPromise = ipToLocation(ip);
+  return { browser, os, deviceLabel, ip, locationPromise };
+}
+
+// Await the background location lookup (used only when preparing the OTP email).
+async function resolveLocation(device) {
+  if (device?.location) return device.location;
+  try {
+    return (await device?.locationPromise) || "";
+  } catch {
+    return "";
+  }
+}
+
+// Save/refresh a session immediately and update its location in the background
+// once the IP lookup resolves — this keeps login fast (never blocks on ip-api).
+async function saveSession(userId, deviceId, device) {
+  const known = await usersession.findOne({ user: userId, deviceId });
+  if (known) {
+    known.lastSeen = new Date();
+    known.deviceLabel = device.deviceLabel;
+    known.browser = device.browser;
+    known.os = device.os;
+    known.ip = device.ip;
+    await known.save();
+    resolveLocation(device).then((loc) => {
+      if (loc) {
+        usersession
+          .updateOne({ _id: known._id }, { $set: { location: loc } })
+          .catch(() => {});
+      }
+    });
+    return known;
+  }
+  const created = await usersession.create({
+    user: userId,
+    deviceId,
+    deviceLabel: device.deviceLabel,
+    browser: device.browser,
+    os: device.os,
+    ip: device.ip,
+    location: "",
+  });
+  resolveLocation(device).then((loc) => {
+    if (loc) {
+      usersession
+        .updateOne({ _id: created._id }, { $set: { location: loc } })
+        .catch(() => {});
+    }
+  });
+  return created;
 }
 
 // Core login: creates the backend user if needed, then decides whether this
@@ -90,6 +140,7 @@ export const login = async (req, res) => {
         expiresAt,
       });
 
+      await resolveLocation(device);
       const sent = await sendNewDeviceOtpEmail(normalized, code, device, OTP_TTL_MINUTES);
       if (!sent) {
         await OTP.deleteOne({ email: normalized, purpose: "device-login", deviceId });
@@ -105,25 +156,7 @@ export const login = async (req, res) => {
 
     // Trusted device (known) or first device for this account: allow login
     // and record/refresh the session.
-    if (known) {
-      known.lastSeen = new Date();
-      known.deviceLabel = device.deviceLabel;
-      known.browser = device.browser;
-      known.os = device.os;
-      known.ip = device.ip;
-      if (device.location) known.location = device.location;
-      await known.save();
-    } else {
-      await usersession.create({
-        user: existingUser._id,
-        deviceId,
-        deviceLabel: device.deviceLabel,
-        browser: device.browser,
-        os: device.os,
-        ip: device.ip,
-        location: device.location,
-      });
-    }
+    await saveSession(existingUser._id, deviceId, device);
 
     return res.status(200).json({ result: existingUser });
   } catch (error) {
@@ -166,6 +199,7 @@ export const resendDeviceOtp = async (req, res) => {
       expiresAt,
     });
 
+    await resolveLocation(device);
     const sent = await sendNewDeviceOtpEmail(normalized, code, device, OTP_TTL_MINUTES);
     if (!sent) {
       await OTP.deleteOne({ email: normalized, purpose: "device-login", deviceId });
@@ -225,27 +259,7 @@ export const verifyDeviceLogin = async (req, res) => {
     }
 
     // Now that the code verified, register this device as a trusted session.
-    const device = await buildDeviceInfo(req);
-    const known = await usersession.findOne({ user: user._id, deviceId });
-    if (known) {
-      known.lastSeen = new Date();
-      known.deviceLabel = device.deviceLabel;
-      known.browser = device.browser;
-      known.os = device.os;
-      known.ip = device.ip;
-      if (device.location) known.location = device.location;
-      await known.save();
-    } else {
-      await usersession.create({
-        user: user._id,
-        deviceId,
-        deviceLabel: device.deviceLabel,
-        browser: device.browser,
-        os: device.os,
-        ip: device.ip,
-        location: device.location,
-      });
-    }
+    await saveSession(user._id, deviceId, device);
 
     return res.status(200).json({ result: user });
   } catch (error) {
