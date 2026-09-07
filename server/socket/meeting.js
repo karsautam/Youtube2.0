@@ -81,42 +81,48 @@ export function initMeetingSocket(io) {
         let r = store.getRoom(rid);
         const existing = r && store.findParticipantByUser(rid, user.id);
 
-        // ---- Reconnect path (network drop / browser refresh) ----
+        // ---- Reconnect path (previous tab closed / network drop) ----
+        // A participant is marked ghost=true when their socket disconnected
+        // (closed tab, refresh, network drop). Only in that case may the same
+        // user rejoin and adopt the existing slot. If the participant is still
+        // live (non-ghost), a second tab is trying to join with the same id and
+        // must be rejected so the same user can't be in the meeting twice.
         if (existing) {
-          if (existing.ghost || (reconnectKey && reconnectKey === existing.reconnectKey)) {
-            existing.socketId = socket.id;
-            existing.ghost = false;
-            existing.reconnecting = false;
-            existing.reconnectKey = reconnectKey || existing.reconnectKey;
-            if (micOn !== undefined) existing.micOn = Boolean(micOn);
-            if (camOn !== undefined) existing.camOn = Boolean(camOn);
-            self = existing;
-            roomId = rid;
-            if (disconnectTimer) {
-              clearTimeout(disconnectTimer);
-              disconnectTimer = null;
-            }
-            socket.join(rid);
-            const all = store.listParticipants(rid);
-            socket.emit("meet:reconnected", {
-              roomId: rid,
-              self: participantPayload(existing),
-              participants: all
-                .filter((p) => p.socketId !== socket.id)
-                .map(participantPayload),
-              hostId: r.hostId,
-              coHostIds: [...r.coHostIds],
-              permissions: r.permissions,
-              locked: r.locked,
-              chat: r.chat,
-            });
-            io.to(rid).emit("meet:participant-status", {
-              socketId: socket.id,
-              id: user.id,
-              reconnecting: false,
-            });
-            return;
+          if (!existing.ghost) {
+            return deny("You are already in this meeting in another tab");
           }
+          existing.socketId = socket.id;
+          existing.ghost = false;
+          existing.reconnecting = false;
+          existing.reconnectKey = reconnectKey || existing.reconnectKey;
+          if (micOn !== undefined) existing.micOn = Boolean(micOn);
+          if (camOn !== undefined) existing.camOn = Boolean(camOn);
+          self = existing;
+          roomId = rid;
+          if (disconnectTimer) {
+            clearTimeout(disconnectTimer);
+            disconnectTimer = null;
+          }
+          socket.join(rid);
+          const all = store.listParticipants(rid);
+          socket.emit("meet:reconnected", {
+            roomId: rid,
+            self: participantPayload(existing),
+            participants: all
+              .filter((p) => p.socketId !== socket.id)
+              .map(participantPayload),
+            hostId: r.hostId,
+            coHostIds: [...r.coHostIds],
+            permissions: r.permissions,
+            locked: r.locked,
+            chat: r.chat,
+          });
+          io.to(rid).emit("meet:participant-status", {
+            socketId: socket.id,
+            id: user.id,
+            reconnecting: false,
+          });
+          return;
         }
 
         // ---- New participant path ----
@@ -127,10 +133,6 @@ export function initMeetingSocket(io) {
             name: m.hostName || m.hostId,
           });
           r.locked = Boolean(m.locked);
-        }
-
-        if (existing) {
-          return deny("You are already in this meeting on another tab");
         }
 
         if (r.locked && String(m.hostId) !== user.id && !r.coHostIds.has(user.id)) {
