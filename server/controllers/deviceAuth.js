@@ -141,11 +141,13 @@ export const login = async (req, res) => {
       });
 
       await resolveLocation(device);
-      const sent = await sendNewDeviceOtpEmail(normalized, code, device, OTP_TTL_MINUTES);
-      if (!sent) {
-        await OTP.deleteOne({ email: normalized, purpose: "device-login", deviceId });
-        return res.status(500).json({ message: "Failed to send verification email." });
-      }
+      // Send the OTP email in the background so login always responds fast,
+      // even if the SMTP server is slow or down.
+      sendNewDeviceOtpEmail(normalized, code, device, OTP_TTL_MINUTES).then((sent) => {
+        if (!sent) {
+          OTP.deleteOne({ email: normalized, purpose: "device-login", deviceId }).catch(() => {});
+        }
+      });
 
       return res.status(200).json({
         needOtp: true,
@@ -200,11 +202,12 @@ export const resendDeviceOtp = async (req, res) => {
     });
 
     await resolveLocation(device);
-    const sent = await sendNewDeviceOtpEmail(normalized, code, device, OTP_TTL_MINUTES);
-    if (!sent) {
-      await OTP.deleteOne({ email: normalized, purpose: "device-login", deviceId });
-      return res.status(500).json({ message: "Failed to send verification email." });
-    }
+    // Fire-and-forget: never block the login response on SMTP delivery.
+    sendNewDeviceOtpEmail(normalized, code, device, OTP_TTL_MINUTES).then((sent) => {
+      if (!sent) {
+        OTP.deleteOne({ email: normalized, purpose: "device-login", deviceId }).catch(() => {});
+      }
+    });
     return res.status(200).json({ message: "Verification code sent." });
   } catch (error) {
     console.error("resendDeviceOtp error:", error);
