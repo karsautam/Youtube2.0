@@ -9,6 +9,9 @@ const OTP_LENGTH = 6;
 const OTP_TTL_MINUTES = 10;
 const RESEND_COOLDOWN_SECONDS = 60;
 const MAX_ATTEMPTS = 5;
+// Only require OTP when another device has REALLY been used very recently
+// (a different-origin tab or old session should NOT keep asking for a code).
+const OTHER_ACTIVE_WINDOW_MS = Number(process.env.OTP_ACTIVE_WINDOW_MINUTES || 15) * 60 * 1000;
 
 function hashCode(code) {
   return crypto.createHash("sha256").update(String(code)).digest("hex");
@@ -27,13 +30,36 @@ async function buildDeviceInfo(req) {
   return { browser, os, deviceLabel, ip, locationPromise };
 }
 
-// Await the background location lookup (used only when preparing the OTP email).
+// Awaits the background location lookup (used only when preparing the OTP email).
 async function resolveLocation(device) {
   if (device?.location) return device.location;
   try {
     return (await device?.locationPromise) || "";
   } catch {
     return "";
+  }
+}
+
+// Send the OTP email but never block login forever: wait up to ~8s for the
+// result. If the email could not be delivered (SMTP down/misconfigured), the
+// code is returned so the user can still sign in instead of being stuck.
+async function sendDeviceOtpEmailBounded(email, code, device) {
+  try {
+    const result = await Promise.race([
+      sendNewDeviceOtpEmail(email, code, device, OTP_TTL_MINUTES),
+      new Promise((resolve) => setTimeout(() => resolve(null), 8000)),
+    ]);
+    if (result === true) return { sent: true, devCode: null };
+    if (result === false) {
+      console.error(`[OTP] Email send FAILED for ${email}; exposing code as fallback (SMTP not delivered).`);
+      return { sent: false, devCode: code };
+    }
+    // Timed out — unknown if it arrived. Keep the code as a fallback too.
+    console.warn(`[OTP] Email send TIMED OUT for ${email}; exposing code as fallback.`);
+    return { sent: false, devCode: code };
+  } catch (error) {
+    console.error(`[OTP] Email send error for ${email}:`, error.message);
+    return { sent: false, devCode: code };
   }
 }
 
@@ -100,12 +126,12 @@ export const login = async (req, res) => {
     // Is this device already trusted for this account?
     const known = await usersession.findOne({ user: existingUser._id, deviceId });
 
-    // Any OTHER distinct device actively used on this account?
+    // Any OTHER distinct device VERY RECENTLY active on this account?
     const otherActive = await usersession
       .find({
         user: existingUser._id,
         deviceId: { $ne: deviceId },
-        lastSeen: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
+        lastSeen: { $gte: new Date(Date.now() - OTHER_ACTIVE_WINDOW_MS) },
       })
       .countDocuments();
 
@@ -141,18 +167,16 @@ export const login = async (req, res) => {
       });
 
       await resolveLocation(device);
-      // Send the OTP email in the background so login always responds fast,
-      // even if the SMTP server is slow or down.
-      sendNewDeviceOtpEmail(normalized, code, device, OTP_TTL_MINUTES).then((sent) => {
-        if (!sent) {
-          OTP.deleteOne({ email: normalized, purpose: "device-login", deviceId }).catch(() => {});
-        }
-      });
+      const { sent, devCode } = await sendDeviceOtpEmailBounded(normalized, code, device);
 
       return res.status(200).json({
         needOtp: true,
         email: normalized,
-        message: "This account is active on another device. Check your email for a verification code.",
+        devCode,
+        // Keep the OTP alive even if the email failed so the fallback code works.
+        message: sent
+          ? "This account was used on another device recently. Check your email for a verification code."
+          : "We couldn't send a verification email, so we've shown the code below. Enter it to finish signing in.",
       });
     }
 
@@ -202,13 +226,11 @@ export const resendDeviceOtp = async (req, res) => {
     });
 
     await resolveLocation(device);
-    // Fire-and-forget: never block the login response on SMTP delivery.
-    sendNewDeviceOtpEmail(normalized, code, device, OTP_TTL_MINUTES).then((sent) => {
-      if (!sent) {
-        OTP.deleteOne({ email: normalized, purpose: "device-login", deviceId }).catch(() => {});
-      }
+    const { sent, devCode } = await sendDeviceOtpEmailBounded(normalized, code, device);
+    return res.status(200).json({
+      message: sent ? "Verification code sent." : "Email failed — code shown below.",
+      devCode,
     });
-    return res.status(200).json({ message: "Verification code sent." });
   } catch (error) {
     console.error("resendDeviceOtp error:", error);
     return res.status(500).json({ message: "Something went wrong" });

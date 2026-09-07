@@ -14,8 +14,8 @@ import { ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
 export default function OtpVerifyDialog() {
-  const { pendingOtp, otpEmail, verifyDeviceOtp, resendDeviceOtp } = useUser();
-  const [code, setCode] = useState("");
+  const { pendingOtp, otpEmail, otpDevCode, verifyDeviceOtp, resendDeviceOtp } = useUser();
+  const [code, setCode] = useState(otpDevCode || "");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
@@ -47,7 +47,12 @@ export default function OtpVerifyDialog() {
     setResending(true);
     try {
       const data = await resendDeviceOtp();
-      toast.success(data?.message || "Code sent to your email.");
+      if (data?.devCode) {
+        setCode(data.devCode);
+        setError("Email failed — code shown above.");
+      } else {
+        toast.success(data?.message || "Code sent to your email.");
+      }
     } catch (e: any) {
       toast.error(e?.response?.data?.message || "Could not resend the code.");
     } finally {
@@ -69,14 +74,28 @@ export default function OtpVerifyDialog() {
             Verify this device
           </DialogTitle>
           <DialogDescription>
-            Your account is already active on another device. We&apos;ve sent a
-            verification code to{" "}
-            <span className="font-medium text-foreground">{otpEmail}</span>.
-            Enter it below to finish signing in on this device.
+            {otpDevCode ? (
+              <>
+                Your account was used from another device recently. We couldn&apos;t deliver the
+                verification email, so use the code shown below to finish signing in.
+              </>
+            ) : (
+              <>
+                Your account was used from another device recently. We&apos;ve sent a verification
+                code to <span className="font-medium text-foreground">{otpEmail}</span>. Enter it
+                below to finish signing in on this device.
+              </>
+            )}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3">
+          {otpDevCode && (
+            <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-center">
+              <p className="text-xs text-amber-700">Email not delivered — your code is:</p>
+              <p className="mt-1 text-2xl font-bold tracking-[0.35em] text-amber-900">{otpDevCode}</p>
+            </div>
+          )}
           <Input
             value={code}
             onChange={(e) => setCode(e.target.value)}

@@ -23,6 +23,7 @@ export const UserProvider = ({ children }) => {
   const [authError, setAuthError] = useState(null);
   const [pendingOtp, setPendingOtp] = useState(false);
   const [otpEmail, setOtpEmail] = useState("");
+  const [otpDevCode, setOtpDevCode] = useState("");
   const clearAuthError = () => setAuthError(null);
 
   const login = (userdata) => {
@@ -51,6 +52,7 @@ export const UserProvider = ({ children }) => {
     const response = await axiosInstance.post("/user/login", payload);
     if (response.data && response.data.needOtp) {
       setOtpEmail(response.data.email || firebaseuser.email);
+      setOtpDevCode(response.data.devCode || "");
       setPendingOtp(true);
       return;
     }
@@ -77,6 +79,7 @@ export const UserProvider = ({ children }) => {
       email: otpEmail,
       deviceId: getDeviceId(),
     });
+    setOtpDevCode(response.data?.devCode || "");
     return response.data;
   };
 
@@ -166,6 +169,7 @@ export const UserProvider = ({ children }) => {
         clearAuthError,
         pendingOtp,
         otpEmail,
+        otpDevCode,
         verifyDeviceOtp,
         resendDeviceOtp,
         handlegooglesignin,
