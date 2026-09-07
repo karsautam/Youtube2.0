@@ -12,6 +12,8 @@ import { useState } from "react";
 import { createContext } from "react";
 import { provider, auth } from "./firebase";
 import axiosInstance from "./axiosinstance";
+import { getDeviceId } from "./deviceId";
+import OtpVerifyDialog from "@/components/OtpVerifyDialog";
 import { useEffect, useContext } from "react";
 
 const UserContext = createContext();
@@ -19,14 +21,18 @@ const UserContext = createContext();
 export const UserProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [authError, setAuthError] = useState(null);
+  const [pendingOtp, setPendingOtp] = useState(false);
+  const [otpEmail, setOtpEmail] = useState("");
   const clearAuthError = () => setAuthError(null);
 
   const login = (userdata) => {
     setUser(userdata);
+    setPendingOtp(false);
     localStorage.setItem("user", JSON.stringify(userdata));
   };
   const logout = async () => {
     setUser(null);
+    setPendingOtp(false);
     localStorage.removeItem("user");
     try {
       await signOut(auth);
@@ -34,15 +40,46 @@ export const UserProvider = ({ children }) => {
       console.error("Error during sign out:", error);
     }
   };
+
   const syncBackendUser = async (firebaseuser) => {
     const payload = {
       email: firebaseuser.email,
       name: firebaseuser.displayName,
       image: firebaseuser.photoURL || "https://github.com/shadcn.png",
+      deviceId: getDeviceId(),
     };
     const response = await axiosInstance.post("/user/login", payload);
+    if (response.data && response.data.needOtp) {
+      setOtpEmail(response.data.email || firebaseuser.email);
+      setPendingOtp(true);
+      return;
+    }
     login(response.data.result);
   };
+
+  const verifyDeviceOtp = async (code) => {
+    const response = await axiosInstance.post("/user/verify-device-login", {
+      email: otpEmail,
+      code,
+      deviceId: getDeviceId(),
+      name: "",
+      image: "",
+    });
+    if (response.data && response.data.result) {
+      login(response.data.result);
+      return { success: true };
+    }
+    return { success: false };
+  };
+
+  const resendDeviceOtp = async () => {
+    const response = await axiosInstance.post("/user/resend-device-otp", {
+      email: otpEmail,
+      deviceId: getDeviceId(),
+    });
+    return response.data;
+  };
+
   const handlegooglesignin = async () => {
     clearAuthError();
     try {
@@ -127,12 +164,17 @@ export const UserProvider = ({ children }) => {
         logout,
         authError,
         clearAuthError,
+        pendingOtp,
+        otpEmail,
+        verifyDeviceOtp,
+        resendDeviceOtp,
         handlegooglesignin,
         handleEmailLogin,
         handleEmailSignup,
       }}
     >
       {children}
+      <OtpVerifyDialog />
     </UserContext.Provider>
   );
 };

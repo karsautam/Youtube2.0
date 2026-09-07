@@ -74,6 +74,63 @@ export async function sendOtpEmail(email, otp, expiresInMinutes = 10) {
   }
 }
 
+export async function sendNewDeviceOtpEmail(email, otp, deviceInfo, expiresInMinutes = 10) {
+  const device = deviceInfo || {};
+  const html = `
+  <!DOCTYPE html>
+  <html>
+  <head>
+    <style>
+      body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 20px; }
+      .container { max-width: 480px; margin: auto; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+      .header { background: linear-gradient(135deg, #6366f1, #ef4444); padding: 30px; text-align: center; }
+      .header h1 { color: #fff; margin: 0; font-size: 22px; }
+      .body { padding: 30px; text-align: center; }
+      .otp { display: inline-block; font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #ef4444; background: #fff5f5; padding: 12px 24px; border-radius: 8px; margin: 20px 0; }
+      .text { font-size: 14px; color: #444; line-height: 1.6; }
+      .note { font-size: 12px; color: #888; margin-top: 20px; }
+      .device-box { background: #f8f8f8; border-radius: 8px; padding: 14px; margin: 16px 0; text-align: left; font-size: 13px; color: #333; }
+      .device-box div { padding: 3px 0; }
+      .footer { background: #f4f4f4; padding: 16px 30px; text-align: center; font-size: 12px; color: #888; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header"><h1>YourTube</h1></div>
+      <div class="body">
+        <p class="text">Hi there,</p>
+        <p class="text">A new device just tried to sign in to your YourTube account. To protect your account, please verify this login. This code expires in <strong>${expiresInMinutes} minutes</strong>.</p>
+        <div class="otp">${otp}</div>
+        <div class="device-box">
+          <div><strong>Device:</strong> ${device.deviceLabel || "Unknown"}</div>
+          <div><strong>Browser:</strong> ${device.browser || "Unknown"}</div>
+          <div><strong>OS:</strong> ${device.os || "Unknown"}</div>
+          <div><strong>Approximate location:</strong> ${device.location || "Unknown"}</div>
+        </div>
+        <p class="text">If this wasn't you, your account may be at risk — please change your password.</p>
+        <p class="note">For your security, never share this code with anyone. The new device will not be allowed in until the code is entered.</p>
+      </div>
+      <div class="footer">YourTube &copy; ${new Date().getFullYear()}</div>
+    </div>
+  </body>
+  </html>
+  `;
+
+  try {
+    await getTransporter().sendMail({
+      from: `"YourTube" <${process.env.SMTP_EMAIL}>`,
+      to: email,
+      subject: "YourTube: New device sign-in verification",
+      html,
+    });
+    console.log("New-device OTP email sent to:", email);
+    return true;
+  } catch (error) {
+    console.error("Failed to send new-device OTP email:", error.message);
+    return false;
+  }
+}
+
 export async function sendSubscriptionConfirmation(user, sub, planDef) {
   const supportEmail = "sautamkar00@gmail.com";
   const html = `

@@ -9,7 +9,7 @@ import { Eye, EyeOff } from "lucide-react";
 
 export default function SignInPage() {
   const router = useRouter();
-  const { user, handlegooglesignin, handleEmailLogin, handleEmailSignup, authError, clearAuthError } = useUser();
+  const { user, pendingOtp, handlegooglesignin, handleEmailLogin, handleEmailSignup, authError, clearAuthError } = useUser();
   const [isSignup, setIsSignup] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -31,7 +31,7 @@ export default function SignInPage() {
       } else {
         await handleEmailLogin(email, password);
       }
-if (router.pathname !== "/") router.push("/");
+      if (!pendingOtp && router.pathname !== "/") router.push("/");
     } catch (err: any) {
       if (err?.code === "auth/user-not-found") {
         setError("No account found with this email. Please sign up first.");
