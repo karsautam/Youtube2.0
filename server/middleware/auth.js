@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import users from "../Modals/Auth.js";
 
 export async function requireAuth(req, res, next) {
-  const userId = req.body?.userId || req.body?.uploader;
+  const userId = req.body?.userId || req.body?.uploader || req.query?.userId;
   if (!userId) {
     return res.status(401).json({ message: "Login required" });
   }

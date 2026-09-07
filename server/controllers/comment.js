@@ -1,5 +1,24 @@
 import comment from "../Modals/comment.js";
+import commentreport from "../Modals/commentreport.js";
 import mongoose from "mongoose";
+import {
+  filterCommentContent,
+  isDuplicate,
+  checkRate,
+  hitRate,
+  createCaptcha,
+  verifyCaptcha,
+  EDITABLE_WINDOW_MS,
+} from "../utils/commentSafety.js";
+
+const REPORT_REASONS = [
+  "spam",
+  "harassment",
+  "offensive",
+  "misinformation",
+  "impersonation",
+  "other",
+];
 
 function isValidId(id) {
   return mongoose.Types.ObjectId.isValid(id);
@@ -18,11 +37,13 @@ function decorate(items, userId) {
       commentbody: c.commentbody,
       usercommented: c.usercommented,
       userimage: c.userimage,
+      location: c.location || "",
       likesCount: c.likesCount || (c.likes ? c.likes.length : 0),
       dislikesCount: c.dislikesCount || (c.dislikes ? c.dislikes.length : 0),
       replyCount: c.replyCount || 0,
       edited: c.edited,
       editedAt: c.editedAt,
+      revision: c.revision || 0,
       commentedon: c.commentedon,
       createdAt: c.createdAt,
       updatedAt: c.updatedAt,
@@ -37,7 +58,8 @@ export const postcomment = async (req, res) => {
   if (!authUser) {
     return res.status(401).json({ message: "Login required" });
   }
-  const { videoid, commentbody, parentId } = req.body || {};
+  const { videoid, commentbody, parentId, captchaToken, captchaAnswer } =
+    req.body || {};
   if (!videoid || !commentbody || !String(commentbody).trim()) {
     return res.status(400).json({ message: "Comment is required" });
   }
@@ -47,6 +69,31 @@ export const postcomment = async (req, res) => {
       return res.status(400).json({ message: "Invalid parent comment" });
     }
 
+    // Rate limiting / flooding: after repeated posting, require CAPTCHA.
+    const rate = checkRate(authUser._id);
+    if (rate.limited) {
+      if (!captchaToken || !verifyCaptcha(captchaToken, captchaAnswer)) {
+        return res.status(429).json({
+          message: "You're posting too quickly. Solve the CAPTCHA to continue.",
+          needCaptcha: true,
+          captcha: createCaptcha(),
+        });
+      }
+    }
+
+    // Content filter: profanity, links, emoji/special-char flooding.
+    const filt = filterCommentContent(commentbody);
+    if (filt.blocked) {
+      return res.status(400).json({ message: filt.reason });
+    }
+
+    // Duplicate comment detection.
+    if (isDuplicate(authUser._id, videoid, commentbody)) {
+      return res
+        .status(400)
+        .json({ message: "You already posted this comment — please change it." });
+    }
+
     const postcomment = new comment({
       videoid,
       parentId: parentId || null,
@@ -54,6 +101,7 @@ export const postcomment = async (req, res) => {
       userid: authUser._id,
       usercommented: authUser.name || authUser.channelname || "Anonymous",
       userimage: authUser.image || "",
+      location: authUser.location || "",
     });
     await postcomment.save();
 
@@ -64,6 +112,8 @@ export const postcomment = async (req, res) => {
       );
     }
 
+    hitRate(authUser._id);
+
     const [decorated] = decorate([postcomment], authUser._id);
     return res.status(200).json({ comment: true, data: decorated });
   } catch (error) {
@@ -72,17 +122,33 @@ export const postcomment = async (req, res) => {
   }
 };
 
+function relevanceScore(c) {
+  const ageHours = Math.max(
+    0,
+    (Date.now() - new Date(c.commentedon).getTime()) / 3600000
+  );
+  const recencyBoost = Math.max(0, 10 - ageHours / 24);
+  return (c.likesCount || 0) * 3 + (c.replyCount || 0) * 5 + recencyBoost;
+}
+
 export const getallcomment = async (req, res) => {
   const { videoid } = req.params;
-  const sort = req.query.sort === "top" ? "top" : "newest";
+  const sort = req.query.sort || "newest";
   const userId = req.query.userId || null;
 
   try {
     let docs;
-    if (sort === "top") {
-      docs = await comment.find({ videoid, parentId: null }).sort({ likesCount: -1, commentedon: -1 });
+    const base = { videoid, parentId: null };
+    if (sort === "oldest") {
+      docs = await comment.find(base).sort({ commentedon: 1 });
+    } else if (sort === "top") {
+      docs = await comment.find(base).sort({ likesCount: -1, commentedon: -1 });
+    } else if (sort === "relevant") {
+      const all = await comment.find(base);
+      all.sort((a, b) => relevanceScore(b) - relevanceScore(a));
+      docs = all;
     } else {
-      docs = await comment.find({ videoid, parentId: null }).sort({ commentedon: -1 });
+      docs = await comment.find(base).sort({ commentedon: -1 });
     }
     return res.status(200).json(decorate(docs, userId));
   } catch (error) {
@@ -122,11 +188,20 @@ export const togglecommentlike = async (req, res) => {
 
     let likes = doc.likes.filter((x) => String(x) !== uid);
     if (!hadLike) likes.push(authUser._id);
-    let dislikes = hadLike ? doc.dislikes : doc.dislikes.filter((x) => String(x) !== uid);
+    let dislikes = hadLike
+      ? doc.dislikes
+      : doc.dislikes.filter((x) => String(x) !== uid);
 
     await comment.updateOne(
       { _id: id },
-      { $set: { likes, dislikes, likesCount: likes.length, dislikesCount: dislikes.length } }
+      {
+        $set: {
+          likes,
+          dislikes,
+          likesCount: likes.length,
+          dislikesCount: dislikes.length,
+        },
+      }
     );
     return res.status(200).json({
       comment: true,
@@ -156,11 +231,20 @@ export const togglecommentdislike = async (req, res) => {
 
     let dislikes = doc.dislikes.filter((x) => String(x) !== uid);
     if (!hadDislike) dislikes.push(authUser._id);
-    let likes = hadDislike ? doc.likes : doc.likes.filter((x) => String(x) !== uid);
+    let likes = hadDislike
+      ? doc.likes
+      : doc.likes.filter((x) => String(x) !== uid);
 
     await comment.updateOne(
       { _id: id },
-      { $set: { likes, dislikes, likesCount: likes.length, dislikesCount: dislikes.length } }
+      {
+        $set: {
+          likes,
+          dislikes,
+          likesCount: likes.length,
+          dislikesCount: dislikes.length,
+        },
+      }
     );
     return res.status(200).json({
       comment: true,
@@ -186,12 +270,19 @@ export const deletecomment = async (req, res) => {
     if (String(target.userid) !== String(authUser._id)) {
       return res.status(403).json({ message: "You can only delete your own comments" });
     }
+    const age = Date.now() - new Date(target.commentedon).getTime();
+    if (age > EDITABLE_WINDOW_MS) {
+      return res
+        .status(403)
+        .json({ message: "Comments can only be deleted within 24 hours of posting." });
+    }
 
     if (target.parentId) {
       await comment.updateOne({ _id: target.parentId }, { $inc: { replyCount: -1 } });
     }
     await comment.deleteMany({ parentId: _id });
     await comment.deleteOne({ _id });
+    await commentreport.deleteMany({ comment: _id });
     return res.status(200).json({ comment: true });
   } catch (error) {
     console.error("deletecomment error:", error);
@@ -203,7 +294,7 @@ export const editcomment = async (req, res) => {
   const authUser = req.authUser;
   if (!authUser) return res.status(401).json({ message: "Login required" });
   const { id: _id } = req.params;
-  const { commentbody } = req.body;
+  const { commentbody, revision } = req.body;
   if (!isValidId(_id)) return res.status(404).json({ message: "Comment unavailable" });
   if (!commentbody || !String(commentbody).trim()) {
     return res.status(400).json({ message: "Comment cannot be empty" });
@@ -215,16 +306,137 @@ export const editcomment = async (req, res) => {
     if (String(target.userid) !== String(authUser._id)) {
       return res.status(403).json({ message: "You can only edit your own comments" });
     }
+    const age = Date.now() - new Date(target.commentedon).getTime();
+    if (age > EDITABLE_WINDOW_MS) {
+      return res
+        .status(403)
+        .json({ message: "Comments can only be edited within 24 hours of posting." });
+    }
+
+    // Concurrent-edit guard: the client must post from the current revision.
+    if (revision !== undefined && Number(revision) !== Number(target.revision)) {
+      return res.status(409).json({
+        message: "This comment was already edited — refresh and try again.",
+      });
+    }
+
+    const filt = filterCommentContent(commentbody);
+    if (filt.blocked) {
+      return res.status(400).json({ message: filt.reason });
+    }
+
+    const history = target.editHistory || [];
+    history.push({ body: target.commentbody, at: new Date() });
+    if (history.length > 5) history.shift();
 
     const updated = await comment.findByIdAndUpdate(
       _id,
-      { $set: { commentbody: String(commentbody).trim().slice(0, 10000), edited: true, editedAt: new Date() } },
+      {
+        $set: {
+          commentbody: String(commentbody).trim().slice(0, 10000),
+          edited: true,
+          editedAt: new Date(),
+          revision: (target.revision || 0) + 1,
+          editHistory: history,
+        },
+      },
       { new: true }
     );
     const decorated = decorate([updated], authUser._id);
     return res.status(200).json(decorated[0]);
   } catch (error) {
     console.error("editcomment error:", error);
+    return res.status(500).json({ message: "Something went wrong" });
+  }
+};
+
+// ---------------- Reporting + moderation ----------------
+
+export const reportcomment = async (req, res) => {
+  const authUser = req.authUser;
+  if (!authUser) return res.status(401).json({ message: "Login required" });
+  const { id } = req.params;
+  const { reason } = req.body || {};
+  if (!isValidId(id)) return res.status(400).json({ message: "Invalid comment" });
+  if (!REPORT_REASONS.includes(reason)) {
+    return res.status(400).json({ message: "Invalid report reason" });
+  }
+
+  try {
+    const target = await comment.findById(id);
+    if (!target) return res.status(404).json({ message: "Comment not found" });
+
+    // Prevent a user from reporting the same comment twice.
+    const existing = await commentreport.findOne({
+      comment: id,
+      reporter: authUser._id,
+    });
+    if (existing) {
+      return res.status(409).json({ message: "You already reported this comment." });
+    }
+
+    const report = new commentreport({
+      comment: id,
+      videoid: target.videoid,
+      reporter: authUser._id,
+      reporterName: authUser.name || authUser.channelname || "Anonymous",
+      reason,
+    });
+    await report.save();
+    return res.status(200).json({ comment: true, report: true });
+  } catch (error) {
+    if (error && error.code === 11000) {
+      return res.status(409).json({ message: "You already reported this comment." });
+    }
+    console.error("reportcomment error:", error);
+    return res.status(500).json({ message: "Something went wrong" });
+  }
+};
+
+export const getreports = async (req, res) => {
+  const authUser = req.authUser;
+  if (!authUser) return res.status(401).json({ message: "Login required" });
+  const { status } = req.query;
+  try {
+    const q = status ? { status } : {};
+    const reports = await commentreport
+      .find(q)
+      .sort({ createdAt: -1 })
+      .limit(200)
+      .populate({ path: "comment", model: "comment" })
+      .lean();
+    return res.status(200).json(reports);
+  } catch (error) {
+    console.error("getreports error:", error);
+    return res.status(500).json({ message: "Something went wrong" });
+  }
+};
+
+export const resolvereport = async (req, res) => {
+  const authUser = req.authUser;
+  if (!authUser) return res.status(401).json({ message: "Login required" });
+  const { id } = req.params;
+  const { status, resolution, removeComment } = req.body || {};
+  if (!["reviewed", "actioned", "dismissed"].includes(status)) {
+    return res.status(400).json({ message: "Invalid report status" });
+  }
+
+  try {
+    const report = await commentreport.findById(id);
+    if (!report) return res.status(404).json({ message: "Report not found" });
+
+    report.status = status;
+    report.resolution = resolution || null;
+    report.moderatedAt = new Date();
+    if (Boolean(removeComment)) {
+      report.commentRemoved = true;
+      await comment.deleteMany({ parentId: report.comment });
+      await comment.deleteOne({ _id: report.comment });
+    }
+    await report.save();
+    return res.status(200).json({ report: true });
+  } catch (error) {
+    console.error("resolvereport error:", error);
     return res.status(500).json({ message: "Something went wrong" });
   }
 };

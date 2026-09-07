@@ -5,6 +5,7 @@ const userschema = mongoose.Schema({
   channelname: { type: String },
   description: { type: String },
   image: { type: String },
+  location: { type: String, default: "" },
   joinedon: { type: Date, default: Date.now },
 });
 

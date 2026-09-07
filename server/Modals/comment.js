@@ -19,6 +19,9 @@ const commentschema = mongoose.Schema(
     commentbody: { type: String },
     usercommented: { type: String },
     userimage: { type: String, default: "" },
+    location: { type: String, default: "" },
+    editHistory: { type: Array, default: [] },
+    revision: { type: Number, default: 0 },
     likes: {
       type: [{ type: mongoose.Schema.Types.ObjectId, ref: "user" }],
       default: [],
