@@ -71,7 +71,15 @@ const index = () => {
         </p>
       </div>
     ),
-    videos: <ChannelVideos videos={videos} />,
+    videos: (
+      <ChannelVideos
+        videos={videos}
+        isOwner={isOwner}
+        onDeleted={(videoId: string) =>
+          setVideos((prev) => prev.filter((v: any) => v._id !== videoId))
+        }
+      />
+    ),
     shorts: (
       <div className="text-center py-12 text-muted-foreground">No shorts yet.</div>
     ),

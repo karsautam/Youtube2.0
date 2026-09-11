@@ -7,12 +7,10 @@ import {
   Download,
   Lock,
   MoreHorizontal,
-  Pencil,
   Share,
   ThumbsDown,
   ThumbsUp,
   Trash2,
-  Check,
   X,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
@@ -117,51 +115,6 @@ const VideoInfo = ({ video }: any) => {
   };
 
   const channelOwnerId = video.uploader;
-  const isOwner = user?._id && String(user._id) === String(channelOwnerId);
-
-  const [editingTitle, setEditingTitle] = useState(false);
-  const [titleValue, setTitleValue] = useState(video.videotitle || "");
-  const [titleSaving, setTitleSaving] = useState(false);
-
-  const handleSaveTitle = async () => {
-    const trimmed = titleValue.trim();
-    if (!trimmed) {
-      toast.error("Title cannot be empty");
-      return;
-    }
-    if (trimmed === video.videotitle) {
-      setEditingTitle(false);
-      return;
-    }
-    setTitleSaving(true);
-    try {
-      await axiosInstance.patch(`/video/update/${video._id}`, {
-        userId: user._id,
-        videotitle: trimmed,
-      });
-      toast.success("Title updated");
-      setEditingTitle(false);
-      video.videotitle = trimmed;
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || "Failed to update title");
-      setTitleValue(video.videotitle);
-    } finally {
-      setTitleSaving(false);
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!confirm("Are you sure you want to delete this video?")) return;
-    try {
-      await axiosInstance.delete(`/video/delete/${video._id}`, {
-        data: { userId: user._id },
-      });
-      toast.success("Video deleted");
-      if (router.pathname !== "/") router.push("/");
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || "Failed to delete video");
-    }
-  };
 
   useEffect(() => {
     setlikes(video.Like || 0);
@@ -346,39 +299,7 @@ const VideoInfo = ({ video }: any) => {
 
   return (
     <div className="space-y-4">
-      {editingTitle ? (
-        <div className="flex items-center gap-2">
-          <input
-            type="text"
-            value={titleValue}
-            onChange={(e) => setTitleValue(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") handleSaveTitle();
-              if (e.key === "Escape") {
-                setTitleValue(video.videotitle);
-                setEditingTitle(false);
-              }
-            }}
-            autoFocus
-            className="text-base font-semibold leading-snug sm:text-xl bg-background border rounded px-2 py-1 flex-1 outline-none focus:ring-2 focus:ring-primary"
-          />
-          <Button size="icon" variant="ghost" onClick={handleSaveTitle} disabled={titleSaving} className="h-8 w-8 shrink-0">
-            <Check className="w-4 h-4 text-green-600" />
-          </Button>
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={() => {
-              setTitleValue(video.videotitle);
-              setEditingTitle(false);
-            }}
-            className="h-8 w-8 shrink-0"
-          >
-            <X className="w-4 h-4 text-red-600" />
-          </Button>
-        </div>
-      ) : (
-        <div className="flex items-start gap-2">
+      <div className="flex items-start gap-2">
           <div className="relative min-w-0 flex-1">
             <button
               type="button"
@@ -440,18 +361,7 @@ const VideoInfo = ({ video }: any) => {
               </>
             )}
           </div>
-          {isOwner && (
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={() => setEditingTitle(true)}
-              className="h-8 w-8 shrink-0 mt-0.5"
-            >
-              <Pencil className="w-4 h-4" />
-            </Button>
-          )}
         </div>
-      )}
 
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-3">
@@ -728,19 +638,6 @@ const VideoInfo = ({ video }: any) => {
                   >
                     <Trash2 className="w-5 h-5" />
                     Remove from downloads
-                  </button>
-                )}
-                {isOwner && (
-                  <button
-                    type="button"
-                    className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 active:bg-red-100"
-                    onClick={() => {
-                      setMoreOpen(false);
-                      handleDelete();
-                    }}
-                  >
-                    <Trash2 className="w-5 h-5" />
-                    Delete video
                   </button>
                 )}
               </>

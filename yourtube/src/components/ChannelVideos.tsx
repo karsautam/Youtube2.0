@@ -1,5 +1,5 @@
 ﻿import VideoCard from "./videocard";
-export default function ChannelVideos({ videos }: any) {
+export default function ChannelVideos({ videos, isOwner, onDeleted }: any) {
   if (videos.length === 0) {
     return (
       <div className="text-center py-12">
@@ -13,7 +13,7 @@ export default function ChannelVideos({ videos }: any) {
       <h2 className="text-xl font-semibold mb-4">Videos</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {videos.map((video: any) => (
-          <VideoCard key={video._id} video={video} />
+          <VideoCard key={video._id} video={video} manageable={isOwner} onDeleted={onDeleted} />
         ))}
       </div>
     </div>

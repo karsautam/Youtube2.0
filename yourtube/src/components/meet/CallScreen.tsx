@@ -228,13 +228,13 @@ export default function CallScreen({
         </Button>
       </div>
 
-      <main className="flex flex-1 flex-col items-center overflow-hidden">
+      <main className="relative flex flex-1 flex-col items-center overflow-hidden">
         <div
           className={cn(
-            "grid w-full flex-1 gap-3 overflow-y-auto p-4",
+            "grid w-full flex-1 gap-3 p-4 pb-24",
             participants.length <= 1
               ? "grid-cols-1 content-center"
-              : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 auto-rows-min"
+              : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 auto-rows-fr"
           )}
         >
           {participants.map((p) => {
@@ -255,13 +255,14 @@ export default function CallScreen({
                   participant={p}
                   stream={stream}
                   isSelf={p.socketId === room.self?.socketId}
+                  showFullscreen={participants.length > 1}
                 />
               </div>
             );
           })}
         </div>
 
-        <div className="pb-4">
+        <div className="absolute inset-x-0 bottom-3 z-20 flex justify-center px-4">
           <ControlBar
             micOn={room.media.micOn}
             camOn={room.media.camOn}

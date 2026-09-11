@@ -1,5 +1,5 @@
 import { useRouter } from "next/router";
-import { ArrowLeft, ArrowRight, RotateCw } from "lucide-react";
+import { ArrowLeft, RotateCw } from "lucide-react";
 import { useMiniPlayer } from "@/lib/MiniPlayerContext";
 import { useVideoHistory } from "@/lib/VideoHistoryContext";
 import { useUser } from "@/lib/AuthContext";
@@ -48,13 +48,6 @@ export default function NavBar() {
         title="Go back"
       >
         <ArrowLeft className="w-4 h-4" />
-      </button>
-      <button
-        onClick={() => router.forward()}
-        className="flex items-center justify-center w-8 h-8 rounded-full hover:bg-accent text-muted-foreground transition-colors"
-        title="Go forward"
-      >
-        <ArrowRight className="w-4 h-4" />
       </button>
       <button
         onClick={async () => {

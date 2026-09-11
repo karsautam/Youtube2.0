@@ -1,4 +1,4 @@
-﻿import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   Hand,
@@ -19,6 +19,7 @@ type Props = {
   participant: Participant;
   stream: MediaStream | null;
   isSelf?: boolean;
+  showFullscreen?: boolean;
 };
 
 const QUALITY_DOT: Record<string, string> = {
@@ -27,7 +28,7 @@ const QUALITY_DOT: Record<string, string> = {
   poor: "bg-red-500",
 };
 
-export default function ParticipantTile({ participant, stream, isSelf }: Props) {
+export default function ParticipantTile({ participant, stream, isSelf, showFullscreen = true }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -70,9 +71,9 @@ export default function ParticipantTile({ participant, stream, isSelf }: Props) 
   return (
     <div
       ref={containerRef}
-      onClick={toggleFullscreen}
+      onClick={() => showFullscreen && toggleFullscreen()}
       className={cn(
-        "relative aspect-video w-full cursor-pointer overflow-hidden rounded-xl bg-slate-800 border-2",
+        "relative h-full w-full cursor-pointer overflow-hidden rounded-xl bg-slate-800 border-2",
         participant.speaking && !isSelf
           ? "border-emerald-500"
           : "border-transparent"
@@ -106,16 +107,18 @@ export default function ParticipantTile({ participant, stream, isSelf }: Props) 
         </div>
       )}
 
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          toggleFullscreen();
-        }}
-        title="View fullscreen"
-        className="absolute right-2 top-2 z-50 flex h-8 w-8 items-center justify-center rounded-md bg-black/50 text-white shadow transition hover:bg-black/70"
-      >
-        <Maximize className="h-4 w-4" />
-      </button>
+      {showFullscreen && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleFullscreen();
+          }}
+          title="View fullscreen"
+          className="absolute right-2 top-2 z-50 flex h-8 w-8 items-center justify-center rounded-md bg-black/50 text-white shadow transition hover:bg-black/70"
+        >
+          <Maximize className="h-4 w-4" />
+        </button>
+      )}
 
       {isFullscreen && (
         <FullscreenView
@@ -286,4 +289,3 @@ function FullscreenView({
     document.body
   );
 }
-

@@ -1,6 +1,7 @@
 import express from "express";
 import {
   login,
+  logout,
   verifyDeviceLogin,
   resendDeviceOtp,
   checkSessionStatus,
@@ -14,6 +15,7 @@ import upload from "../filehelper/filehelper.js";
 const routes = express.Router();
 
 routes.post("/login", login);
+routes.post("/logout", logout);
 routes.post("/verify-device-login", verifyDeviceLogin);
 routes.post("/resend-device-otp", resendDeviceOtp);
 routes.get("/session-status", checkSessionStatus);

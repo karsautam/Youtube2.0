@@ -32,9 +32,19 @@ export const UserProvider = ({ children }) => {
     localStorage.setItem("user", JSON.stringify(userdata));
   };
   const logout = async () => {
+    const currentUser = user;
     setUser(null);
     setPendingOtp(false);
     localStorage.removeItem("user");
+    try {
+      if (currentUser?._id) {
+        axiosInstance
+          .post("/user/logout", { userId: currentUser._id, deviceId: getDeviceId() })
+          .catch(() => {});
+      }
+    } catch (error) {
+      console.error("Error during sign out:", error);
+    }
     try {
       await signOut(auth);
     } catch (error) {

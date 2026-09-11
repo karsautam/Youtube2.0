@@ -261,10 +261,17 @@ export const createOrder = async (req, res) => {
 
     let customerId = currentSub?.razorpayCustomerId;
     if (!customerId) {
-      const customer = await getRazorpay().customers.create({
-        name: userInfo.name || userInfo.email, email: userInfo.email,
-      });
-      customerId = customer.id;
+      try {
+        const customer = await getRazorpay().customers.create({
+          name: userInfo.name || userInfo.email, email: userInfo.email,
+        });
+        customerId = customer.id;
+      } catch (err) {
+        // Razorpay returns 400 "Customer already exists" for repeated emails;
+        // that must not block order creation — Razorpay re-links on checkout.
+        console.log("Razorpay customer create skipped:", err?.error?.description || err?.message);
+        customerId = null;
+      }
     }
 
     const order = await getRazorpay().orders.create({
@@ -276,7 +283,6 @@ export const createOrder = async (req, res) => {
     let sub = currentSub || new Subscription({ userId });
     sub.razorpayCustomerId = customerId;
     sub.razorpayOrderId = order.id;
-    // Do NOT change the user's plan here — only after payment is verified.
     sub.intendedPlan = planDef.tier;
     sub.intendedCycle = billingCycle;
     sub.billingCycle = billingCycle;

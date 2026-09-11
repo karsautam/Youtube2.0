@@ -199,6 +199,26 @@ export const login = async (req, res) => {
 // Lets the frontend check whether the current device session is still valid.
 // After OTP verification on a new device, older sessions are revoked -> the
 // first device polls this and signs itself out.
+// Sign the current device out: revoke its session so it no longer counts as an
+// "other active device" (which would otherwise force OTP on the next login).
+export const logout = async (req, res) => {
+  const userId = req.body?.userId || req.query?.userId;
+  const deviceId = req.body?.deviceId || req.query?.deviceId;
+  if (!userId || !deviceId) {
+    return res.status(400).json({ message: "userId and deviceId are required" });
+  }
+  try {
+    await usersession.updateOne(
+      { user: userId, deviceId, revoked: { $ne: true } },
+      { $set: { revoked: true, lastSeen: new Date() } }
+    );
+    return res.status(200).json({ message: "Signed out" });
+  } catch (error) {
+    console.error("logout error:", error);
+    return res.status(500).json({ message: "Something went wrong" });
+  }
+};
+
 export const checkSessionStatus = async (req, res) => {
   const userId = req.query?.userId || req.body?.userId;
   const deviceId = req.query?.deviceId || req.body?.deviceId;
