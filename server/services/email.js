@@ -1,20 +1,39 @@
-import nodemailer from "nodemailer";
+const BREVO_API = "https://api.brevo.com/v3/smtp/email";
 
-let transporter;
-function getTransporter() {
-  if (!transporter) {
-    transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.SMTP_EMAIL,
-        pass: process.env.SMTP_PASSWORD,
-      },
-      connectionTimeout: 10000,
-      greetingTimeout: 10000,
-      socketTimeout: 15000,
-    });
+async function sendBrevo({ to, subject, html }) {
+  // Read from env lazily so this works even if the module is imported before
+  // dotenv.config() runs in index.js.
+  const BREVO_KEY = process.env.BREVO_API_KEY;
+  const SENDER_EMAIL = process.env.SMTP_EMAIL || "sautamkar00@gmail.com";
+  if (!BREVO_KEY) {
+    console.error("[Brevo] BREVO_API_KEY not set — cannot send email");
+    return false;
   }
-  return transporter;
+  try {
+    const res = await fetch(BREVO_API, {
+      method: "POST",
+      headers: {
+        "api-key": BREVO_KEY,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({
+        sender: { name: "YourTube", email: SENDER_EMAIL },
+        to: [{ email: to }],
+        subject,
+        htmlContent: html,
+      }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      console.error("[Brevo] send failed:", res.status, JSON.stringify(body));
+      return false;
+    }
+    return true;
+  } catch (error) {
+    console.error("[Brevo] send error:", error.message);
+    return false;
+  }
 }
 
 function formatDate(d) {
@@ -62,19 +81,9 @@ export async function sendOtpEmail(email, otp, expiresInMinutes = 10) {
   </html>
   `;
 
-  try {
-    await getTransporter().sendMail({
-      from: `"YourTube" <${process.env.SMTP_EMAIL}>`,
-      to: email,
-      subject: "YourTube Login Verification Code",
-      html,
-    });
-    console.log("OTP email sent to:", email);
-    return true;
-  } catch (error) {
-    console.error("Failed to send OTP email:", error.message);
-    return false;
-  }
+  const sent = await sendBrevo({ to: email, subject: "YourTube Login Verification Code", html });
+  if (sent) console.log("OTP email sent to:", email);
+  return sent;
 }
 
 export async function sendNewDeviceOtpEmail(email, otp, deviceInfo, expiresInMinutes = 10) {
@@ -119,19 +128,9 @@ export async function sendNewDeviceOtpEmail(email, otp, deviceInfo, expiresInMin
   </html>
   `;
 
-  try {
-    await getTransporter().sendMail({
-      from: `"YourTube" <${process.env.SMTP_EMAIL}>`,
-      to: email,
-      subject: "YourTube: New device sign-in verification",
-      html,
-    });
-    console.log("New-device OTP email sent to:", email);
-    return true;
-  } catch (error) {
-    console.error("Failed to send new-device OTP email:", error.message);
-    return false;
-  }
+  const sent = await sendBrevo({ to: email, subject: "YourTube: New device sign-in verification", html });
+  if (sent) console.log("New-device OTP email sent to:", email);
+  return sent;
 }
 
 export async function sendSubscriptionConfirmation(user, sub, planDef) {
@@ -142,7 +141,7 @@ export async function sendSubscriptionConfirmation(user, sub, planDef) {
   <head>
     <style>
       body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 20px; }
-      .container { max-width: 600px; margin: auto; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+      .container { max-width: 600px; margin: auto; background: #fff; border-radius: 12px; overflow: hidden; }
       .header { background: linear-gradient(135deg, #f59e0b, #ef4444); padding: 30px; text-align: center; }
       .header h1 { color: #fff; margin: 0; font-size: 24px; }
       .header p { color: rgba(255,255,255,0.9); margin: 5px 0 0; }
@@ -154,7 +153,6 @@ export async function sendSubscriptionConfirmation(user, sub, planDef) {
       .features { background: #f9f9f9; border-radius: 8px; padding: 20px; margin: 20px 0; }
       .feature-item { padding: 6px 0; font-size: 14px; color: #333; }
       .footer { background: #f4f4f4; padding: 20px 30px; text-align: center; font-size: 12px; color: #888; }
-      .btn { display: inline-block; background: #f59e0b; color: #fff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; margin: 10px 0; }
     </style>
   </head>
   <body>
@@ -166,48 +164,18 @@ export async function sendSubscriptionConfirmation(user, sub, planDef) {
       <div class="body">
         <p>Hi ${user.name || "there"},</p>
         <p>Your subscription has been successfully activated! Here are your details:</p>
-
         <div style="text-align:center; margin: 20px 0;">
           <span class="plan-badge">${planDef?.badge || sub.plan.toUpperCase()} Plan</span>
         </div>
-
-        <div class="detail-row">
-          <span class="detail-label">Plan</span>
-          <span class="detail-value">${planDef?.name || sub.plan}</span>
-        </div>
-        <div class="detail-row">
-          <span class="detail-label">Billing Cycle</span>
-          <span class="detail-value">${CYCLE_LABELS[sub.billingCycle] || sub.billingCycle}</span>
-        </div>
-        <div class="detail-row">
-          <span class="detail-label">Amount Paid</span>
-          <span class="detail-value">${formatCurrency(sub.amountPaid)}</span>
-        </div>
-        <div class="detail-row">
-          <span class="detail-label">Invoice Number</span>
-          <span class="detail-value">${sub.invoiceNumber || "N/A"}</span>
-        </div>
-        <div class="detail-row">
-          <span class="detail-label">Payment ID</span>
-          <span class="detail-value">${sub.razorpayPaymentId || "N/A"}</span>
-        </div>
-        <div class="detail-row">
-          <span class="detail-label">Order ID</span>
-          <span class="detail-value">${sub.razorpayOrderId || "N/A"}</span>
-        </div>
-        <div class="detail-row">
-          <span class="detail-label">Subscription Start</span>
-          <span class="detail-value">${formatDate(sub.startDate)}</span>
-        </div>
-        <div class="detail-row">
-          <span class="detail-label">Valid Until</span>
-          <span class="detail-value">${sub.expiryDate ? formatDate(sub.expiryDate) : "N/A"}</span>
-        </div>
-        <div class="detail-row" style="border-bottom:none;">
-          <span class="detail-label">Auto-Renew</span>
-          <span class="detail-value">${sub.autoRenew ? "Yes" : "No"}</span>
-        </div>
-
+        <div class="detail-row"><span class="detail-label">Plan</span><span class="detail-value">${planDef?.name || sub.plan}</span></div>
+        <div class="detail-row"><span class="detail-label">Billing Cycle</span><span class="detail-value">${CYCLE_LABELS[sub.billingCycle] || sub.billingCycle}</span></div>
+        <div class="detail-row"><span class="detail-label">Amount Paid</span><span class="detail-value">${formatCurrency(sub.amountPaid)}</span></div>
+        <div class="detail-row"><span class="detail-label">Invoice Number</span><span class="detail-value">${sub.invoiceNumber || "N/A"}</span></div>
+        <div class="detail-row"><span class="detail-label">Payment ID</span><span class="detail-value">${sub.razorpayPaymentId || "N/A"}</span></div>
+        <div class="detail-row"><span class="detail-label">Order ID</span><span class="detail-value">${sub.razorpayOrderId || "N/A"}</span></div>
+        <div class="detail-row"><span class="detail-label">Subscription Start</span><span class="detail-value">${formatDate(sub.startDate)}</span></div>
+        <div class="detail-row"><span class="detail-label">Valid Until</span><span class="detail-value">${sub.expiryDate ? formatDate(sub.expiryDate) : "N/A"}</span></div>
+        <div class="detail-row" style="border-bottom:none;"><span class="detail-label">Auto-Renew</span><span class="detail-value">${sub.autoRenew ? "Yes" : "No"}</span></div>
         ${planDef?.features ? `
         <div class="features">
           <h3 style="margin:0 0 10px; font-size:16px;">Your Features</h3>
@@ -218,12 +186,9 @@ export async function sendSubscriptionConfirmation(user, sub, planDef) {
           <div class="feature-item">${"\u2714"} ${planDef.features.devicesSimultaneous} device(s) simultaneously</div>
           <div class="feature-item">${planDef.features.exclusiveCourses ? "\u2714" : "\u2716"} Exclusive Courses</div>
           <div class="feature-item">${planDef.features.priorityAccess ? "\u2714" : "\u2716"} Priority Access</div>
-        </div>
-        ` : ""}
-
+        </div>` : ""}
         <p style="font-size:14px; color:#666; margin-top:20px;">
-          You can manage your subscription, view billing history, or cancel anytime from your
-          <a href="http://localhost:3000/subscription" style="color:#f59e0b;">Subscription Dashboard</a>.
+          You can manage your subscription from your <a href="https://yourtube.vercel.app/subscription" style="color:#f59e0b;">Subscription Dashboard</a>.
         </p>
       </div>
       <div class="footer">
@@ -235,19 +200,13 @@ export async function sendSubscriptionConfirmation(user, sub, planDef) {
   </html>
   `;
 
-  try {
-    await getTransporter().sendMail({
-      from: `"YourTube" <${process.env.SMTP_EMAIL}>`,
-      to: user.email,
-      subject: `YourTube ${planDef?.name || sub.plan} Subscription Confirmed - ${sub.invoiceNumber || ""}`,
-      html,
-    });
-    console.log("Confirmation email sent to:", user.email);
-    return true;
-  } catch (error) {
-    console.error("Failed to send confirmation email:", error.message);
-    return false;
-  }
+  const sent = await sendBrevo({
+    to: user.email,
+    subject: `YourTube ${planDef?.name || sub.plan} Subscription Confirmed - ${sub.invoiceNumber || ""}`,
+    html,
+  });
+  if (sent) console.log("Confirmation email sent to:", user.email);
+  return sent;
 }
 
 export async function sendCancellationEmail(user, sub, planDef) {
@@ -272,7 +231,6 @@ export async function sendCancellationEmail(user, sub, planDef) {
         <p>Your <strong>${planDef?.name || sub.plan}</strong> subscription has been cancelled.</p>
         <p>You will continue to have access until <strong>${sub.expiryDate ? formatDate(sub.expiryDate) : "the end of your billing period"}</strong>.</p>
         <p>After that, your account will be downgraded to the <strong>Free</strong> plan.</p>
-        <p style="margin-top:20px;">Changed your mind? You can <a href="http://localhost:3000/subscription" style="color:#f59e0b;">reactivate your subscription</a> anytime before it expires.</p>
       </div>
       <div class="footer">
         <p>Questions? Contact us at <a href="mailto:sautamkar00@gmail.com">sautamkar00@gmail.com</a></p>
@@ -282,17 +240,11 @@ export async function sendCancellationEmail(user, sub, planDef) {
   </html>
   `;
 
-  try {
-    await getTransporter().sendMail({
-      from: `"YourTube" <${process.env.SMTP_EMAIL}>`,
-      to: user.email,
-      subject: `YourTube Subscription Cancelled`,
-      html,
-    });
-    console.log("Cancellation email sent to:", user.email);
-    return true;
-  } catch (error) {
-    console.error("Failed to send cancellation email:", error.message);
-    return false;
-  }
+  const sent = await sendBrevo({
+    to: user.email,
+    subject: "YourTube Subscription Cancelled",
+    html,
+  });
+  if (sent) console.log("Cancellation email sent to:", user.email);
+  return sent;
 }
