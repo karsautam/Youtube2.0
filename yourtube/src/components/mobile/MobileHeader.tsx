@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useState, type FormEvent } from "react";
-import { ArrowLeft, Bell, Menu, Search, User } from "lucide-react";
+import { useTheme } from "next-themes";
+import { ArrowLeft, Bell, Menu, Moon, Search, Sun, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -24,6 +25,7 @@ export default function MobileHeader({
 }) {
   const router = useRouter();
   const { user, logout } = useUser();
+  const { theme, setTheme } = useTheme();
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
 
@@ -87,6 +89,15 @@ export default function MobileHeader({
           </Link>
           </div>
           <div className="flex items-center">
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Toggle theme"
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            >
+              <Sun className="h-[22px] w-[22px] hidden dark:block" />
+              <Moon className="h-[22px] w-[22px] dark:hidden" />
+            </Button>
             <Button
               variant="ghost"
               size="icon"

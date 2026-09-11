@@ -136,14 +136,14 @@ export default function Shorts() {
   return (
     <main className="scrollbar-none h-[calc(100vh-8.5rem)] snap-y snap-mandatory overflow-y-scroll overscroll-contain lg:h-[calc(100vh-54px)]">
       {videos === null ? (
-        <div className="flex h-full items-center justify-center bg-black text-white">
+        <div className="flex h-full items-center justify-center bg-background text-foreground">
           <Loader2 className="size-10 animate-spin" />
         </div>
       ) : videos.length === 0 ? (
-        <div className="flex h-full flex-col items-center justify-center gap-2 bg-black text-center text-white">
-          <PlaySquare className="size-10 text-white/60" />
+        <div className="flex h-full flex-col items-center justify-center gap-2 bg-background text-center text-foreground">
+          <PlaySquare className="size-10 text-muted-foreground" />
           <p className="font-medium">No shorts yet</p>
-          <p className="text-sm text-white/50">
+          <p className="text-sm text-muted-foreground">
             Upload a video to see it here
           </p>
         </div>

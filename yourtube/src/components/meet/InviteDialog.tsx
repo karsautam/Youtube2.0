@@ -41,7 +41,7 @@ export default function InviteDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="dark bg-slate-900 text-white">
+      <DialogContent className="dark bg-slate-900 text-white sm:max-w-md max-w-[95vw] w-full">
         <DialogHeader>
           <DialogTitle>Invite people</DialogTitle>
           <DialogDescription>
@@ -51,12 +51,12 @@ export default function InviteDialog({
         <div className="space-y-4">
           <div>
             <p className="mb-1 text-sm font-medium">Meeting link</p>
-            <div className="flex gap-2">
+            <div className="flex min-w-0 gap-2">
               <a
                 href={link}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex h-9 flex-1 items-center truncate text-blue-400 underline"
+                className="flex h-9 min-w-0 flex-1 items-center truncate text-blue-400 underline"
               >
                 {link}
               </a>
@@ -75,11 +75,11 @@ export default function InviteDialog({
           </div>
           <div>
             <p className="mb-1 text-sm font-medium">Meeting code</p>
-            <div className="flex gap-2">
+            <div className="flex min-w-0 gap-2">
               <Input
                 readOnly
                 value={roomId}
-                className="flex-1 font-mono tracking-widest bg-background/10 text-white focus-visible:ring-blue-500"
+                className="flex-1 min-w-0 font-mono tracking-widest bg-background/10 text-white focus-visible:ring-blue-500"
               />
               <Button
                 variant="outline"
@@ -99,11 +99,11 @@ export default function InviteDialog({
               <p className="mb-1 text-sm font-medium">
                 Meeting passcode (required to join)
               </p>
-              <div className="flex gap-2">
+              <div className="flex min-w-0 gap-2">
                 <Input
                   readOnly
                   value={passcode}
-                  className="flex-1 font-mono tracking-widest bg-background/10 text-white focus-visible:ring-blue-500"
+                  className="flex-1 min-w-0 font-mono tracking-widest bg-background/10 text-white focus-visible:ring-blue-500"
                 />
                 <Button
                   variant="outline"

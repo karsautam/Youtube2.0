@@ -226,8 +226,8 @@ export default function SubscriptionPage() {
           <p className="text-muted-foreground text-center mb-6">Choose the plan that fits you best</p>
 
           <div className="flex justify-center gap-2 mb-8">
-            <button onClick={() => setActiveTab("plans")} className={"px-6 py-2 rounded-full font-medium text-sm transition " + (activeTab === "plans" ? "bg-black text-white" : "bg-muted text-muted-foreground hover:bg-accent")}>Plans</button>
-            <button onClick={() => setActiveTab("dashboard")} className={"px-6 py-2 rounded-full font-medium text-sm transition " + (activeTab === "dashboard" ? "bg-black text-white" : "bg-muted text-muted-foreground hover:bg-accent")}>My Subscription</button>
+            <button onClick={() => setActiveTab("plans")} className={"px-6 py-2 rounded-full font-medium text-sm transition " + (activeTab === "plans" ? "bg-primary text-primary-foreground shadow" : "bg-muted text-muted-foreground hover:bg-accent")}>Plans</button>
+            <button onClick={() => setActiveTab("dashboard")} className={"px-6 py-2 rounded-full font-medium text-sm transition " + (activeTab === "dashboard" ? "bg-primary text-primary-foreground shadow" : "bg-muted text-muted-foreground hover:bg-accent")}>My Subscription</button>
           </div>
 
           {activeTab === "plans" && (

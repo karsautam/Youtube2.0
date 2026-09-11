@@ -231,9 +231,9 @@ export default function CallScreen({
       <main className="relative flex flex-1 flex-col items-center overflow-hidden">
         <div
           className={cn(
-            "grid w-full flex-1 gap-3 p-4 pb-24",
+            "grid w-full flex-1 gap-3 p-4 pt-28 pb-24 sm:pt-4 sm:pb-24",
             participants.length <= 1
-              ? "grid-cols-1 content-center"
+              ? "grid-cols-1 content-center auto-rows-fr"
               : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 auto-rows-fr"
           )}
         >
@@ -246,6 +246,7 @@ export default function CallScreen({
               <div
                 key={p.socketId}
                 className={cn(
+                  "h-full",
                   presenter?.socketId === p.socketId &&
                     participants.length > 1 &&
                     "sm:col-span-2 sm:row-span-2"
@@ -262,7 +263,7 @@ export default function CallScreen({
           })}
         </div>
 
-        <div className="absolute inset-x-0 bottom-3 z-20 flex justify-center px-4">
+        <div className="absolute inset-x-0 top-14 z-20 flex justify-center px-4 sm:top-auto sm:bottom-3">
           <ControlBar
             micOn={room.media.micOn}
             camOn={room.media.camOn}
@@ -270,6 +271,7 @@ export default function CallScreen({
             presenting={room.media.presenting}
             canShareScreen={canShareScreen}
             chatOpen={room.chatOpen}
+            chatUnread={room.chatUnread}
             participantsOpen={room.participantsOpen}
             handRaised={room.handRaised}
             recording={recorder.recording}

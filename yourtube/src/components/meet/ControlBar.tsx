@@ -23,6 +23,7 @@ type Props = {
   presenting: boolean;
   canShareScreen: boolean;
   chatOpen: boolean;
+  chatUnread: number;
   participantsOpen: boolean;
   handRaised: boolean;
   recording: boolean;
@@ -145,7 +146,14 @@ export default function ControlBar(props: Props) {
           active={props.chatOpen}
           title="In-call chat"
         >
-          <MessagesSquare className="h-5 w-5" />
+          <span className="relative">
+            <MessagesSquare className="h-5 w-5" />
+            {!props.chatOpen && props.chatUnread > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold leading-none text-white">
+                {props.chatUnread > 99 ? "99+" : props.chatUnread}
+              </span>
+            )}
+          </span>
         </IconButton>
         <IconButton
           onClick={props.onToggleParticipants}

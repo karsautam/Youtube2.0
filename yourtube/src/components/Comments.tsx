@@ -1,4 +1,5 @@
 ﻿import React, { useEffect, useState } from "react";
+import { useRouter } from "next/router";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Textarea } from "./ui/textarea";
 import { Button } from "./ui/button";
@@ -74,6 +75,7 @@ const Comments = ({ videoId }: any) => {
   const [captcha, setCaptcha] = useState<{ token: string; prompt: string } | null>(null);
   const [captchaAnswer, setCaptchaAnswer] = useState("");
   const { user } = useUser();
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
 
   const userId = user?._id || null;
@@ -258,14 +260,13 @@ const Comments = ({ videoId }: any) => {
         dislikesCount: res.data.dislikesCount,
       };
       setComments((prev) => prev.map((c) => (c._id === comment._id ? updated : c)));
-      if (replies[comment._id]) {
-        setReplies((prev) => ({
-          ...prev,
-          [comment._id]: prev[comment._id].map((r) =>
-            r._id === comment._id ? updated : r
-          ),
-        }));
-      }
+      setReplies((prev) => {
+        const next: Record<string, Comment[]> = {};
+        for (const [key, list] of Object.entries(prev)) {
+          next[key] = list.map((r) => (r._id === comment._id ? updated : r));
+        }
+        return next;
+      });
     } catch (error) {
       console.log(error);
     }
@@ -285,14 +286,13 @@ const Comments = ({ videoId }: any) => {
         dislikesCount: res.data.dislikesCount,
       };
       setComments((prev) => prev.map((c) => (c._id === comment._id ? updated : c)));
-      if (replies[comment._id]) {
-        setReplies((prev) => ({
-          ...prev,
-          [comment._id]: prev[comment._id].map((r) =>
-            r._id === comment._id ? updated : r
-          ),
-        }));
-      }
+      setReplies((prev) => {
+        const next: Record<string, Comment[]> = {};
+        for (const [key, list] of Object.entries(prev)) {
+          next[key] = list.map((r) => (r._id === comment._id ? updated : r));
+        }
+        return next;
+      });
     } catch (error) {
       console.log(error);
     }
@@ -359,7 +359,12 @@ const Comments = ({ videoId }: any) => {
     const ageOk = canModifyComment(comment);
     return (
       <div className="flex items-center gap-2 mb-1 flex-wrap">
-        <span className="font-medium text-sm">{comment.usercommented}</span>
+        <button
+          onClick={() => router.push(`/channel/${comment.userid}`)}
+          className="font-medium text-sm hover:underline"
+        >
+          {comment.usercommented}
+        </button>
         {comment.location && (
           <span className="flex items-center gap-0.5 text-xs text-muted-foreground">
             <MapPin className="h-3 w-3" />
@@ -477,11 +482,16 @@ const Comments = ({ videoId }: any) => {
   );
 
   const renderComment = (comment: Comment) => (
-    <div key={comment._id} className="flex gap-4">
-      <Avatar className="w-10 h-10 shrink-0">
-        <AvatarImage src={comment.userimage || undefined} />
-        <AvatarFallback>{comment.usercommented?.[0] || "U"}</AvatarFallback>
-      </Avatar>
+    <div key={comment._id} className="flex items-start gap-4">
+      <button
+        onClick={() => router.push(`/channel/${comment.userid}`)}
+        className="shrink-0 self-start"
+      >
+        <Avatar className="w-10 h-10 shrink-0">
+          <AvatarImage src={comment.userimage || undefined} />
+          <AvatarFallback>{comment.usercommented?.[0] || "U"}</AvatarFallback>
+        </Avatar>
+      </button>
       <div className="flex-1 min-w-0">
         {renderAuthorMeta(comment)}
 
@@ -606,6 +616,16 @@ const Comments = ({ videoId }: any) => {
         </div>
       </div>
 
+      <div className="space-y-5">
+        {comments.length === 0 ? (
+          <p className="text-sm text-muted-foreground italic">
+            No comments yet. Be the first to comment!
+          </p>
+        ) : (
+          comments.map((comment) => renderComment(comment))
+        )}
+      </div>
+
       {user && (
         <div className="flex gap-4">
           <Avatar className="w-10 h-10">
@@ -631,16 +651,6 @@ const Comments = ({ videoId }: any) => {
           </div>
         </div>
       )}
-
-      <div className="space-y-5">
-        {comments.length === 0 ? (
-          <p className="text-sm text-muted-foreground italic">
-            No comments yet. Be the first to comment!
-          </p>
-        ) : (
-          comments.map((comment) => renderComment(comment))
-        )}
-      </div>
     </div>
   );
 };

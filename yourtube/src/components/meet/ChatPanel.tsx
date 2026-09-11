@@ -58,7 +58,7 @@ export default function ChatPanel({
   };
 
   return (
-    <aside className="flex h-full w-80 max-w-[85vw] flex-col border-l border-white/10 bg-slate-900 text-white">
+    <aside className="relative z-30 flex h-[40vh] w-full flex-col border-l border-white/10 bg-slate-900 text-white sm:h-full sm:w-80 sm:max-w-[85vw]">
       <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
         <h2 className="font-semibold">In-call chat</h2>
         <Button variant="ghost" size="icon" onClick={onClose} className="text-white hover:bg-background/10">

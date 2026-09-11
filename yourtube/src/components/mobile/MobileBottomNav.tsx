@@ -45,10 +45,10 @@ function NavButton({
       }}
       className={cn(
         "flex h-full flex-col items-center justify-center gap-0.5 px-1 transition-colors active:bg-accent",
-        active ? "text-foreground" : "text-muted-foreground"
+        active ? "text-red-600" : "text-muted-foreground"
       )}
     >
-      <span className={cn(active ? "text-foreground" : "text-muted-foreground")}>{icon}</span>
+      <span className={cn(active ? "text-red-600" : "text-muted-foreground")}>{icon}</span>
       <span
         className={cn(
           "text-[10px] leading-none",
@@ -259,7 +259,7 @@ export default function MobileBottomNav({
             type="button"
             aria-label="Upload video"
             onClick={() => router.push("/upload")}
-            className="absolute left-1/2 top-0 flex h-12 w-12 -translate-x-1/2 -translate-y-5 items-center justify-center rounded-full bg-red-600 text-white shadow-lg ring-4 ring-white transition-transform active:scale-95"
+            className="absolute left-1/2 top-0 flex h-12 w-12 -translate-x-1/2 -translate-y-5 items-center justify-center rounded-full bg-red-600 text-white shadow-lg ring-4 ring-background transition-transform active:scale-95"
           >
             <Plus className="h-6 w-6" />
           </button>

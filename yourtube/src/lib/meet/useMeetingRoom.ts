@@ -52,6 +52,7 @@ export type MeetingRoomApi = {
   permissions: MeetingPermissions;
   chatMessages: ChatMessage[];
   chatOpen: boolean;
+  chatUnread: number;
   setChatOpen: (v: boolean) => void;
   participantsOpen: boolean;
   setParticipantsOpen: (v: boolean) => void;
@@ -106,6 +107,8 @@ export function useMeetingRoom({
   });
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatOpen, setChatOpen] = useState(false);
+  const [chatUnread, setChatUnread] = useState(0);
+  const chatOpenRef = useRef(false);
   const [participantsOpen, setParticipantsOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [handRaised, setHandRaised] = useState(false);
@@ -588,7 +591,13 @@ export function useMeetingRoom({
 
   const handleChatMessage = useCallback((m: ChatMessage) => {
     setChatMessages((prev) => [...prev, m].slice(-200));
+    if (!chatOpenRef.current) setChatUnread((n) => n + 1);
   }, []);
+
+  useEffect(() => {
+    chatOpenRef.current = chatOpen;
+    if (chatOpen) setChatUnread(0);
+  }, [chatOpen]);
 
   const handleForceMic = useCallback(({ on }: { on: boolean }) => {
     mediaRef.current.setMic(on);
@@ -948,6 +957,7 @@ export function useMeetingRoom({
     permissions,
     chatMessages,
     chatOpen,
+    chatUnread,
     setChatOpen,
     participantsOpen,
     setParticipantsOpen,
