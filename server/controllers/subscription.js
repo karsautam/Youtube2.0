@@ -193,19 +193,18 @@ export const getSubscriptionStatus = async (req, res) => {
         nextRenewalDate: null, cancelAtPeriodEnd: false, daysRemaining: null, autoRenew: false,
       });
     }
-    if (sub.expiryDate && new Date(sub.expiryDate) < new Date() && sub.plan !== "free") {
-      sub.plan = "free";
-      sub.status = "expired";
-      sub.paymentStatus = "pending";
-      await sub.save();
-    }
-    const planDef = PLAN_MAP[sub.plan] || PLAN_MAP.free;
+    const isExpired = sub.expiryDate && new Date(sub.expiryDate) < new Date() && sub.plan !== "free";
+    const effectivePlan = isExpired ? "free" : sub.plan;
+    const effectiveStatus = isExpired ? "expired" : sub.status;
+    const planDef = PLAN_MAP[effectivePlan] || PLAN_MAP.free;
     const now = new Date();
     const daysRemaining = sub.expiryDate
       ? Math.max(0, Math.ceil((new Date(sub.expiryDate) - now) / (1000 * 60 * 60 * 24)))
       : null;
+    const isPendingUnpaid = Boolean(sub.razorpayOrderId && sub.paymentStatus === "pending" && sub.intendedPlan);
     return res.status(200).json({
-      plan: sub.plan, status: sub.status, features: planDef.features,
+      plan: effectivePlan, status: isPendingUnpaid ? "pending_payment" : effectiveStatus,
+      features: planDef.features, pendingPlan: isPendingUnpaid ? sub.intendedPlan : null,
       billingCycle: sub.billingCycle, startDate: sub.startDate, expiryDate: sub.expiryDate,
       nextRenewalDate: sub.nextRenewalDate, cancelAtPeriodEnd: sub.cancelAtPeriodEnd,
       daysRemaining, autoRenew: sub.autoRenew, invoiceNumber: sub.invoiceNumber,
@@ -277,7 +276,9 @@ export const createOrder = async (req, res) => {
     let sub = currentSub || new Subscription({ userId });
     sub.razorpayCustomerId = customerId;
     sub.razorpayOrderId = order.id;
-    sub.plan = planDef.tier;
+    // Do NOT change the user's plan here — only after payment is verified.
+    sub.intendedPlan = planDef.tier;
+    sub.intendedCycle = billingCycle;
     sub.billingCycle = billingCycle;
     sub.amountPaid = amount / 100;
     sub.invoiceNumber = generateInvoiceNumber();
@@ -318,8 +319,10 @@ export const verifyPayment = async (req, res) => {
       return res.status(400).json({ message: "Order mismatch" });
     }
     const now = new Date();
-    const expiry = calcExpiryDate(sub.billingCycle, now);
+    const expiry = calcExpiryDate(sub.intendedCycle || sub.billingCycle, now);
     sub.razorpayPaymentId = razorpay_payment_id;
+    sub.plan = sub.intendedPlan || sub.plan;
+    sub.billingCycle = sub.intendedCycle || sub.billingCycle;
     sub.status = "active";
     sub.paymentStatus = "captured";
     sub.startDate = now;
@@ -327,6 +330,8 @@ export const verifyPayment = async (req, res) => {
     sub.nextRenewalDate = expiry;
     sub.cancelAtPeriodEnd = false;
     sub.autoRenew = true;
+    sub.intendedPlan = null;
+    sub.intendedCycle = null;
     await sub.save();
 
     await BillingHistory.findOneAndUpdate(

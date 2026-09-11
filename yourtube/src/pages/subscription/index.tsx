@@ -212,6 +212,7 @@ export default function SubscriptionPage() {
   const freePlan = plans.find((p) => p.tier === "free");
   const currentPlanDef = plans.find((p) => p.tier === currentPlanTier) || freePlan;
   const isPaid = currentPlanTier !== "free";
+  const isPendingPayment = subStatus?.status === "pending_payment";
 
   return (
     <>
@@ -267,6 +268,14 @@ export default function SubscriptionPage() {
               status={subStatus} plans={plans} billingHistory={billingHistory}
               onCancel={handleCancel} onReactivate={handleReactivate} onUpgrade={(tier) => { setActiveTab("plans"); }}
             />
+          )}
+          {isPendingPayment && (
+            <div className="max-w-6xl mx-auto mt-4 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+              You started a{" "}
+              <span className="font-semibold uppercase">{(subStatus as any).pendingPlan || ""}</span>{" "}
+              plan checkout but it wasn&apos;t completed. Your current plan stays as it was — no change
+              is made until a payment is verified.
+            </div>
           )}
         </div>
       </main>

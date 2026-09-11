@@ -30,6 +30,8 @@ const subscriptionSchema = mongoose.Schema(
     razorpayPlanId: { type: String },
     invoiceNumber: { type: String },
     amountPaid: { type: Number, default: 0 },
+    intendedPlan: { type: String, enum: ["free", "bronze", "silver", "gold"] },
+    intendedCycle: { type: String, enum: ["monthly", "quarterly", "yearly"] },
     currency: { type: String, default: "INR" },
     startDate: { type: Date },
     expiryDate: { type: Date },
