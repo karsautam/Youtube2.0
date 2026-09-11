@@ -109,7 +109,7 @@ function Tile({
           ref={(el) => {
             if (el && stream && el.srcObject !== stream) el.srcObject = stream;
           }}
-          className={cn("h-full w-full object-cover", isSelf && "-scale-x-100")}
+          className="h-full w-full object-cover"
         />
       ) : (
         <div className="flex h-full w-full items-center justify-center">

@@ -86,10 +86,7 @@ export default function ParticipantTile({ participant, stream, isSelf, showFulls
           autoPlay
           playsInline
           muted={isSelf}
-          className={cn(
-            "h-full w-full object-cover",
-            isSelf && "-scale-x-100"
-          )}
+          className="h-full w-full object-cover"
         />
       ) : (
         <div className="flex h-full w-full items-center justify-center bg-slate-800">
@@ -270,10 +267,7 @@ function FullscreenView({
           autoPlay
           playsInline
           muted={isSelf}
-          className={cn(
-            "h-full w-full object-contain",
-            isSelf && "-scale-x-100"
-          )}
+          className="h-full w-full object-contain"
         />
       ) : (
         <div className="flex h-full w-full items-center justify-center bg-black">
