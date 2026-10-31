@@ -192,18 +192,30 @@ export const login = async (req, res) => {
         expiresAt,
       });
 
-      await resolveLocationFast(device);
-      const { sent, devCode } = await sendDeviceOtpEmailBounded(normalized, code, device);
-
-      return res.status(200).json({
+      // Respond first so the login is never blocked by the mail provider, then
+      // send the verification email in the background. If delivery fails the
+      // user can use "Resend code", which surfaces the fallback code.
+      res.status(200).json({
         result: existingUser,
         needOtp: true,
         email: normalized,
-        devCode,
-        message: sent
-          ? "Signed in on this device. We emailed a verification code — enter it to confirm and sign out other devices."
-          : "Signed in on this device, but the email failed. Use the code shown below.",
+        message:
+          "Signed in on this device. We emailed a verification code — enter it to confirm and sign out other devices.",
       });
+
+      resolveLocationFast(device)
+        .then(() => sendDeviceOtpEmailBounded(normalized, code, device))
+        .then(({ sent }) => {
+          if (!sent) {
+            console.error(
+              `[OTP] Background email to ${normalized} failed; the user can request a resend.`
+            );
+          }
+        })
+        .catch((error) => {
+          console.error("[OTP] Background email error:", error.message);
+        });
+      return;
     }
 
     // Trusted device (known) or first device for this account: allow login
