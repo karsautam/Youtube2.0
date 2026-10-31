@@ -26,7 +26,7 @@ export default function HistoryContent() {
     if (user) {
       loadHistory();
     } else {
-      setLoading(true);
+      setLoading(false);
     }
   }, [user]);
 
@@ -138,7 +138,7 @@ export default function HistoryContent() {
                 {item.videoid.videochanel}
               </p>
               <p className="text-sm text-muted-foreground">
-                {item.videoid.views.toLocaleString()} views •{" "}
+                {(item.videoid.views ?? 0).toLocaleString()} views •{" "}
                 {formatDistanceToNow(new Date(item.videoid.createdAt))} ago
               </p>
               <p className="text-xs text-muted-foreground mt-1">

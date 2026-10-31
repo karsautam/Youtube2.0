@@ -453,7 +453,7 @@ function Dashboard({ status, plans, billingHistory, onCancel, onReactivate, onUp
                 <div className="text-right">
                   <p className="font-semibold text-sm">{formatCurrency(entry.amount)}</p>
                   <p className={"text-xs " + (entry.paymentStatus === "captured" ? "text-green-600" : entry.paymentStatus === "failed" ? "text-red-500" : "text-orange-500")}>
-                    {entry.paymentStatus.charAt(0).toUpperCase() + entry.paymentStatus.slice(1)}
+                    {(entry.paymentStatus || "unknown").charAt(0).toUpperCase() + (entry.paymentStatus || "unknown").slice(1)}
                   </p>
                 </div>
               </div>

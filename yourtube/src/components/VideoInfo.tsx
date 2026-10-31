@@ -177,7 +177,7 @@ const VideoInfo = ({ video }: any) => {
       }
     };
     handleviews();
-  }, [user]);
+  }, [user, video?._id]);
   const handleLike = async () => {
     if (!user) return;
     try {
@@ -263,10 +263,17 @@ const VideoInfo = ({ video }: any) => {
           ? "You downloaded this recently — resuming file"
           : "Download started"
       );
-      window.open(
-        `${axiosInstance.defaults.baseURL}${res.data.downloadUrl}`,
-        "_blank"
-      );
+      const url = `${axiosInstance.defaults.baseURL}${res.data.downloadUrl}`;
+      // Use an anchor click instead of window.open: the request is fired after
+      // an await, so window.open would be treated as a popup and blocked.
+      const a = document.createElement("a");
+      a.href = url;
+      a.rel = "noopener";
+      a.target = "_blank";
+      a.download = "";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
     } catch (err: any) {
       toast.error(err?.response?.data?.message || "Download failed");
     }
@@ -483,7 +490,10 @@ const VideoInfo = ({ video }: any) => {
             className={`hidden shrink-0 bg-muted rounded-full px-2.5 sm:inline-flex sm:px-3 ${
               isDownloaded ? "text-green-700" : ""
             }`}
-            onClick={() => setDownloadMenu(true)}
+            onClick={() => {
+              setDownloadMenu(true);
+              setMoreOpen(true);
+            }}
           >
             {isDownloaded ? (
               <CheckCircle className="w-4 h-4 mr-1.5 fill-green-100 sm:w-5 sm:h-5" />
@@ -516,7 +526,7 @@ const VideoInfo = ({ video }: any) => {
       </div>
       <div className="bg-muted rounded-lg p-4">
         <div className="flex gap-4 text-sm font-medium mb-2">
-          <span>{video.views.toLocaleString()} views</span>
+          <span>{(video.views ?? 0).toLocaleString()} views</span>
           <span>{formatDistanceToNow(new Date(video.createdAt))} ago</span>
         </div>
         <div className={`text-sm ${showFullDescription ? "" : "line-clamp-3"}`}>

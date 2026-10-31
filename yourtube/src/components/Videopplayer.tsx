@@ -1104,11 +1104,11 @@ export default function VideoPlayer({
         break;
       case "arrowup":
         e.preventDefault();
-        setVideoVolume(videoRef.current?.volume ?? 0 + 0.1);
+        setVideoVolume((videoRef.current?.volume ?? 0) + 0.1);
         break;
       case "arrowdown":
         e.preventDefault();
-        setVideoVolume(videoRef.current?.volume ?? 1 - 0.1);
+        setVideoVolume((videoRef.current?.volume ?? 1) - 0.1);
         break;
       case "m":
         toggleMute();

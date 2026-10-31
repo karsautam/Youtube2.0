@@ -14,6 +14,7 @@ export function createRoom(roomId, host) {
     locked: false,
     permissions: { canShareScreen: true, canChat: true },
     chat: [],
+    watch: null,
   };
   rooms.set(roomId, room);
   return room;

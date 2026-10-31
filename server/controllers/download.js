@@ -169,6 +169,12 @@ export const serveDownloadFile = async (req, res) => {
     const filepath = record.selectedPath || record.videoId?.filepath || "";
     const safeName = (record.fileName || "video.mp4").replace(/[^\w.\- ]+/g, "_");
 
+    if (!filepath) {
+      record.status = "failed";
+      await record.save();
+      return res.status(404).json({ message: "Video file is not available" });
+    }
+
     if (/^https?:\/\//i.test(filepath)) {
       const attachUrl = filepath.replace("/upload/", "/upload/fl_attachment/");
       return res.redirect(attachUrl);
@@ -220,8 +226,11 @@ export const deleteDownload = async (req, res) => {
   const { videoId } = req.params;
   const { userId } = req.body;
   try {
-    const deleted = await Download.findOneAndDelete({ videoId, userId });
-    if (!deleted) {
+    if (!userId) return res.status(400).json({ message: "userId is required" });
+    // Remove every record for this video (a user may have downloaded several
+    // qualities, each row is a separate record).
+    const result = await Download.deleteMany({ videoId, userId });
+    if (!result.deletedCount) {
       return res.status(404).json({ message: "Download record not found" });
     }
     return res
@@ -229,6 +238,27 @@ export const deleteDownload = async (req, res) => {
       .json({ message: "Removed from your downloads", deleted: true });
   } catch (error) {
     console.error("deleteDownload error:", error);
+    return res.status(500).json({ message: "Something went wrong" });
+  }
+};
+
+export const deleteDownloadById = async (req, res) => {
+  const { downloadId } = req.params;
+  const { userId } = req.body;
+  try {
+    if (!userId) return res.status(400).json({ message: "userId is required" });
+    const deleted = await Download.findOneAndDelete({
+      _id: downloadId,
+      userId,
+    });
+    if (!deleted) {
+      return res.status(404).json({ message: "Download record not found" });
+    }
+    return res
+      .status(200)
+      .json({ message: "Removed from your downloads", deleted: true });
+  } catch (error) {
+    console.error("deleteDownloadById error:", error);
     return res.status(500).json({ message: "Something went wrong" });
   }
 };

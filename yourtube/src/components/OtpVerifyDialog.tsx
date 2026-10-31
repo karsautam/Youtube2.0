@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useUser } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,23 @@ export default function OtpVerifyDialog() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    if (otpDevCode) setCode(otpDevCode);
+  }, [otpDevCode]);
+
+  useEffect(() => {
+    if (pendingOtp) setCooldown(60);
+  }, [pendingOtp]);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setInterval(() => {
+      setCooldown((value) => (value > 0 ? value - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [cooldown]);
 
   if (!pendingOtp) return null;
 
@@ -51,6 +68,7 @@ export default function OtpVerifyDialog() {
     setResending(true);
     try {
       const data = await resendDeviceOtp();
+      setCooldown(60);
       if (data?.devCode) {
         setCode(data.devCode);
         setError("Email failed — code shown above.");
@@ -121,10 +139,14 @@ export default function OtpVerifyDialog() {
             variant="link"
             size="sm"
             onClick={handleResend}
-            disabled={resending}
+            disabled={resending || cooldown > 0}
             className="px-0"
           >
-            {resending ? "Resending..." : "Resend code"}
+            {resending
+              ? "Resending..."
+              : cooldown > 0
+                ? `Resend in ${cooldown}s`
+                : "Resend code"}
           </Button>
           <Button onClick={handleVerify} disabled={loading || !code.trim()}>
             {loading ? "Verifying..." : "Verify"}

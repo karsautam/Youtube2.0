@@ -46,8 +46,12 @@ export default function LikedVideosContent() {
     if (!user) return;
 
     try {
-      console.log("Unliking video:", videoId, "for user:", user.id);
-      setLikedVideos(likedVideos.filter((item) => item._id !== likedVideoId));
+      if (videoId) {
+        // The like endpoint toggles: since this video is currently liked,
+        // posting again removes the like on the server.
+        await axiosInstance.post(`/like/${videoId}`, { userId: user._id });
+      }
+      setLikedVideos((prev) => prev.filter((item) => item._id !== likedVideoId));
     } catch (error) {
       console.error("Error unliking video:", error);
     }
@@ -126,7 +130,7 @@ export default function LikedVideosContent() {
                 {item.videoid.videochanel}
               </p>
               <p className="text-sm text-muted-foreground">
-                {item.videoid.views.toLocaleString()} views •{" "}
+                {(item.videoid.views ?? 0).toLocaleString()} views •{" "}
                 {formatDistanceToNow(new Date(item.videoid.createdAt))} ago
               </p>
               <p className="text-xs text-muted-foreground mt-1">

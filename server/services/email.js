@@ -1,4 +1,69 @@
+import nodemailer from "nodemailer";
+
 const BREVO_API = "https://api.brevo.com/v3/smtp/email";
+const SEND_TIMEOUT_MS = 6000;
+
+let smtpTransporter = null;
+
+function getSmtpTransporter() {
+  const SMTP_EMAIL = process.env.SMTP_EMAIL;
+  const SMTP_PASSWORD = process.env.SMTP_PASSWORD;
+  if (!SMTP_EMAIL || !SMTP_PASSWORD) return null;
+  if (!smtpTransporter) {
+    smtpTransporter = nodemailer.createTransport({
+      service: "gmail",
+      // Reuse a single connection so follow-up sends (e.g. resend) are fast
+      // instead of paying a fresh TLS handshake each time.
+      pool: true,
+      maxConnections: 1,
+      maxMessages: 50,
+      auth: { user: SMTP_EMAIL, pass: SMTP_PASSWORD },
+      connectionTimeout: SEND_TIMEOUT_MS,
+      greetingTimeout: SEND_TIMEOUT_MS,
+      socketTimeout: 10000,
+    });
+  }
+  return smtpTransporter;
+}
+
+// Called once at startup so a bad app password / blocked SMTP port shows up in
+// the server logs immediately instead of only when a user requests a code.
+export async function verifyEmailTransport() {
+  const SMTP_EMAIL = process.env.SMTP_EMAIL;
+  const SMTP_PASSWORD = process.env.SMTP_PASSWORD;
+  if (!SMTP_EMAIL || !SMTP_PASSWORD) {
+    console.warn("[email] SMTP credentials not set — will use Brevo HTTP API");
+    return false;
+  }
+  try {
+    await getSmtpTransporter().verify();
+    console.log(`[email] Gmail SMTP ready (sender: ${SMTP_EMAIL})`);
+    return true;
+  } catch (error) {
+    console.error("[email] Gmail SMTP verification failed:", error.message);
+    return false;
+  }
+}
+
+async function sendSmtp({ to, subject, html }) {
+  const transporter = getSmtpTransporter();
+  if (!transporter) return false;
+  const SENDER_EMAIL = process.env.SMTP_EMAIL;
+  const started = Date.now();
+  try {
+    await transporter.sendMail({
+      from: `"YourTube" <${SENDER_EMAIL}>`,
+      to,
+      subject,
+      html,
+    });
+    console.log(`[SMTP] sent to ${to} in ${Date.now() - started}ms`);
+    return true;
+  } catch (error) {
+    console.error(`[SMTP] send failed for ${to} after ${Date.now() - started}ms:`, error.message);
+    return false;
+  }
+}
 
 async function sendBrevo({ to, subject, html }) {
   // Read from env lazily so this works even if the module is imported before
@@ -9,9 +74,12 @@ async function sendBrevo({ to, subject, html }) {
     console.error("[Brevo] BREVO_API_KEY not set — cannot send email");
     return false;
   }
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), SEND_TIMEOUT_MS);
   try {
     const res = await fetch(BREVO_API, {
       method: "POST",
+      signal: controller.signal,
       headers: {
         "api-key": BREVO_KEY,
         "Content-Type": "application/json",
@@ -33,7 +101,20 @@ async function sendBrevo({ to, subject, html }) {
   } catch (error) {
     console.error("[Brevo] send error:", error.message);
     return false;
+  } finally {
+    clearTimeout(timer);
   }
+}
+
+// Send through Gmail SMTP: it works from any IP and is not subject to Brevo's
+// authorised-IP allowlist (which blocks cloud hosts like Render). Brevo is only
+// used when SMTP credentials are not configured.
+async function deliver(message) {
+  if (process.env.SMTP_EMAIL && process.env.SMTP_PASSWORD) {
+    return sendSmtp(message);
+  }
+  console.warn("[email] SMTP not configured; falling back to Brevo");
+  return sendBrevo(message);
 }
 
 function formatDate(d) {
@@ -81,7 +162,7 @@ export async function sendOtpEmail(email, otp, expiresInMinutes = 10) {
   </html>
   `;
 
-  const sent = await sendBrevo({ to: email, subject: "YourTube Login Verification Code", html });
+  const sent = await deliver({ to: email, subject: "YourTube Login Verification Code", html });
   if (sent) console.log("OTP email sent to:", email);
   return sent;
 }
@@ -128,7 +209,7 @@ export async function sendNewDeviceOtpEmail(email, otp, deviceInfo, expiresInMin
   </html>
   `;
 
-  const sent = await sendBrevo({ to: email, subject: "YourTube: New device sign-in verification", html });
+  const sent = await deliver({ to: email, subject: "YourTube: New device sign-in verification", html });
   if (sent) console.log("New-device OTP email sent to:", email);
   return sent;
 }
@@ -200,7 +281,7 @@ export async function sendSubscriptionConfirmation(user, sub, planDef) {
   </html>
   `;
 
-  const sent = await sendBrevo({
+  const sent = await deliver({
     to: user.email,
     subject: `YourTube ${planDef?.name || sub.plan} Subscription Confirmed - ${sub.invoiceNumber || ""}`,
     html,
@@ -240,7 +321,7 @@ export async function sendCancellationEmail(user, sub, planDef) {
   </html>
   `;
 
-  const sent = await sendBrevo({
+  const sent = await deliver({
     to: user.email,
     subject: "YourTube Subscription Cancelled",
     html,

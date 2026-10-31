@@ -6,6 +6,7 @@ import type {
   MeetingPermissions,
   MeetingUser,
   Participant,
+  WatchState,
 } from "./types";
 import { useMedia, type MediaManager } from "./useMedia";
 import { uploadChatFile } from "./api";
@@ -58,6 +59,12 @@ export type MeetingRoomApi = {
   setParticipantsOpen: (v: boolean) => void;
   inviteOpen: boolean;
   setInviteOpen: (v: boolean) => void;
+  watch: WatchState | null;
+  watchDialogOpen: boolean;
+  setWatchDialogOpen: (v: boolean) => void;
+  hostStartWatch: (url: string, title?: string) => void;
+  hostStopWatch: () => void;
+  syncWatch: (playing: boolean, position: number) => void;
   handRaised: boolean;
   toggleRaiseHand: () => void;
   meMutedByHost: boolean;
@@ -111,6 +118,8 @@ export function useMeetingRoom({
   const chatOpenRef = useRef(false);
   const [participantsOpen, setParticipantsOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [watch, setWatch] = useState<WatchState | null>(null);
+  const [watchDialogOpen, setWatchDialogOpen] = useState(false);
   const [handRaised, setHandRaised] = useState(false);
   const [meMutedByHost, setMeMutedByHost] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
@@ -478,6 +487,9 @@ export function useMeetingRoom({
       setHostId(data.hostId);
       setCoHostIds(new Set(data.coHostIds || []));
       setChatMessages(data.chat || []);
+      setWatch(
+        data.watch ? { ...data.watch, recvAt: Date.now() } : null
+      );
 
       const selfData: Participant = data.self;
       const others: Participant[] = data.participants || [];
@@ -592,6 +604,25 @@ export function useMeetingRoom({
   const handleChatMessage = useCallback((m: ChatMessage) => {
     setChatMessages((prev) => [...prev, m].slice(-200));
     if (!chatOpenRef.current) setChatUnread((n) => n + 1);
+  }, []);
+
+  const handleWatchStarted = useCallback((w: WatchState) => {
+    setWatch({ ...w, recvAt: Date.now() });
+  }, []);
+
+  const handleWatchState = useCallback(
+    ({ playing, position, updatedAt }: any) => {
+      setWatch((prev) =>
+        prev
+          ? { ...prev, playing, position, updatedAt, recvAt: Date.now() }
+          : prev
+      );
+    },
+    []
+  );
+
+  const handleWatchStopped = useCallback(() => {
+    setWatch(null);
   }, []);
 
   useEffect(() => {
@@ -803,6 +834,18 @@ export function useMeetingRoom({
   );
   const hostEndMeeting = useCallback(() => emit("mod:end", {}), [emit]);
 
+  // ---------- watch together ----------
+  const hostStartWatch = useCallback(
+    (url: string, title?: string) => emit("watch:start", { url, title }),
+    [emit]
+  );
+  const hostStopWatch = useCallback(() => emit("watch:stop", {}), [emit]);
+  const syncWatch = useCallback(
+    (playing: boolean, position: number) =>
+      emit("watch:state", { playing, position, hostTs: Date.now() }),
+    [emit]
+  );
+
   // ---------- leave ----------
   const leave = useCallback(() => {
     if (exitedRef.current) return;
@@ -834,6 +877,9 @@ export function useMeetingRoom({
     handleQuality,
     handleScreenState,
     handleChatMessage,
+    handleWatchStarted,
+    handleWatchState,
+    handleWatchStopped,
     handleForceMic,
     handleRoleChanged,
     handleHostChanged,
@@ -872,6 +918,9 @@ export function useMeetingRoom({
     socket.on("screen:state", (d: any) => h().handleScreenState(d));
     socket.on("chat:message", (m: any) => h().handleChatMessage(m));
     socket.on("chat:file", (m: any) => h().handleChatMessage(m));
+    socket.on("watch:started", (w: any) => h().handleWatchStarted(w));
+    socket.on("watch:state", (s: any) => h().handleWatchState(s));
+    socket.on("watch:stopped", () => h().handleWatchStopped());
     socket.on("media:force-mic", (d: any) => h().handleForceMic(d));
     socket.on("meet:removed", () => h().handleRemoved());
     socket.on("meet:ended", () => h().handleEnded());
@@ -903,6 +952,9 @@ export function useMeetingRoom({
         "screen:state",
         "chat:message",
         "chat:file",
+        "watch:started",
+        "watch:state",
+        "watch:stopped",
         "media:force-mic",
         "meet:removed",
         "meet:ended",
@@ -963,6 +1015,12 @@ export function useMeetingRoom({
     setParticipantsOpen,
     inviteOpen,
     setInviteOpen,
+    watch,
+    watchDialogOpen,
+    setWatchDialogOpen,
+    hostStartWatch,
+    hostStopWatch,
+    syncWatch,
     handRaised,
     toggleRaiseHand,
     meMutedByHost,

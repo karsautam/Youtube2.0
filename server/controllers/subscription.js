@@ -446,15 +446,20 @@ export const checkAccess = async (req, res) => {
 
 export const webhookHandler = async (req, res) => {
   const sig = req.headers["x-razorpay-signature"];
-  const body = JSON.stringify(req.body);
+  const body = Buffer.isBuffer(req.body)
+    ? req.body
+    : Buffer.from(JSON.stringify(req.body));
   const expectedSig = crypto
     .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
     .update(body).digest("hex");
   if (sig !== expectedSig) {
     return res.status(400).json({ message: "Invalid signature" });
   }
-  const event = req.body;
+  let event;
   try {
+    event = Buffer.isBuffer(req.body)
+      ? JSON.parse(req.body.toString("utf8"))
+      : req.body;
     switch (event.event) {
       case "payment.captured": {
         const payment = event.payload?.payment?.entity;

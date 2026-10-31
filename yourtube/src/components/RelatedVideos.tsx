@@ -10,6 +10,7 @@ interface RelatedVideosProps {
     views: number;
     createdAt: string;
     thumbnail?: string;
+    filepath?: string;
   }>;
 }
 import mediaUrl from "@/lib/mediaUrl";
@@ -33,7 +34,7 @@ export default function RelatedVideos({ videos }: RelatedVideosProps) {
               />
             ) : (
               <video
-                src={vid}
+                src={mediaUrl(video.filepath) || vid}
                 className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-200"
               />
             )}
@@ -44,7 +45,7 @@ export default function RelatedVideos({ videos }: RelatedVideosProps) {
             </h3>
             <p className="text-xs text-muted-foreground mt-1">{video.videochanel}</p>
             <p className="text-xs text-muted-foreground">
-              {video.views.toLocaleString()} views •{" "}
+              {(video.views ?? 0).toLocaleString()} views •{" "}
               {formatDistanceToNow(new Date(video.createdAt))} ago
             </p>
           </div>

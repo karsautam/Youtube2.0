@@ -12,6 +12,7 @@ import { useRecording } from "@/lib/meet/useRecording";
 import { uploadRecording } from "@/lib/meet/api";
 import { useMeetingContext } from "@/lib/meet/MeetingContext";
 import ParticipantTile from "./ParticipantTile";
+import WatchPanel, { WatchStartDialog } from "./WatchPanel";
 import ControlBar from "./ControlBar";
 import ParticipantsPanel from "./ParticipantsPanel";
 import ChatPanel from "./ChatPanel";
@@ -157,6 +158,8 @@ export default function CallScreen({
   }
 
   const canShareScreen = room.permissions.canShareScreen || room.isHost || room.isCohost;
+  const canWatch = room.isHost || room.isCohost;
+  const hasWatch = Boolean(room.watch);
   const router = useRouter();
   return (
     <div className="relative flex h-full bg-slate-950 text-white">
@@ -229,39 +232,72 @@ export default function CallScreen({
       </div>
 
       <main className="relative flex flex-1 flex-col items-center overflow-hidden">
-        <div
-          className={cn(
-            "grid w-full flex-1 gap-3 p-4 pt-28 pb-24 sm:pt-4 sm:pb-24",
-            participants.length <= 1
-              ? "grid-cols-1 content-center auto-rows-fr"
-              : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 auto-rows-fr"
-          )}
-        >
-          {participants.map((p) => {
-            const stream =
-              p.socketId === room.self?.socketId
-                ? room.media.localStream
-                : room.participantStreams[p.socketId];
-            return (
-              <div
-                key={p.socketId}
-                className={cn(
-                  "h-full",
-                  presenter?.socketId === p.socketId &&
-                    participants.length > 1 &&
-                    "sm:col-span-2 sm:row-span-2"
-                )}
-              >
-                <ParticipantTile
-                  participant={p}
-                  stream={stream}
-                  isSelf={p.socketId === room.self?.socketId}
-                  showFullscreen={participants.length > 1}
+        {hasWatch ? (
+          <div className="flex min-h-0 w-full flex-1 flex-col gap-3 p-4 pt-28 pb-24 sm:pt-4 sm:pb-24">
+            <div className="relative flex min-h-0 flex-1 items-center justify-center">
+              <div className="w-full max-w-5xl">
+                <WatchPanel
+                  watch={room.watch!}
+                  isHost={canWatch}
+                  syncWatch={room.syncWatch}
+                  onStop={room.hostStopWatch}
                 />
               </div>
-            );
-          })}
-        </div>
+            </div>
+            <div className="flex shrink-0 items-center gap-3 overflow-x-auto pb-1">
+              {participants.map((p) => {
+                const stream =
+                  p.socketId === room.self?.socketId
+                    ? room.media.localStream
+                    : room.participantStreams[p.socketId];
+                return (
+                  <div key={p.socketId} className="h-24 w-40 shrink-0">
+                    <ParticipantTile
+                      participant={p}
+                      stream={stream}
+                      isSelf={p.socketId === room.self?.socketId}
+                      showFullscreen={false}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+          <div
+            className={cn(
+              "grid w-full flex-1 gap-3 p-4 pt-28 pb-24 sm:pt-4 sm:pb-24",
+              participants.length <= 1
+                ? "grid-cols-1 content-center auto-rows-fr"
+                : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 auto-rows-fr"
+            )}
+          >
+            {participants.map((p) => {
+              const stream =
+                p.socketId === room.self?.socketId
+                  ? room.media.localStream
+                  : room.participantStreams[p.socketId];
+              return (
+                <div
+                  key={p.socketId}
+                  className={cn(
+                    "h-full",
+                    presenter?.socketId === p.socketId &&
+                      participants.length > 1 &&
+                      "sm:col-span-2 sm:row-span-2"
+                  )}
+                >
+                  <ParticipantTile
+                    participant={p}
+                    stream={stream}
+                    isSelf={p.socketId === room.self?.socketId}
+                    showFullscreen={participants.length > 1}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         <div className="absolute inset-x-0 top-14 z-20 flex justify-center px-4 sm:top-auto sm:bottom-3">
           <ControlBar
@@ -270,6 +306,8 @@ export default function CallScreen({
             canSwitchCamera={room.media.canSwitchCamera}
             presenting={room.media.presenting}
             canShareScreen={canShareScreen}
+            canWatch={canWatch}
+            watchActive={hasWatch}
             chatOpen={room.chatOpen}
             chatUnread={room.chatUnread}
             participantsOpen={room.participantsOpen}
@@ -291,6 +329,7 @@ export default function CallScreen({
                 toast.error("Screen sharing is disabled by the host.");
               }
             }}
+            onToggleWatch={() => room.setWatchDialogOpen(true)}
             onToggleChat={() => room.setChatOpen(!room.chatOpen)}
             onToggleParticipants={() =>
               room.setParticipantsOpen(!room.participantsOpen)
@@ -332,6 +371,15 @@ export default function CallScreen({
         onOpenChange={room.setInviteOpen}
         roomId={roomId}
         passcode={passcode}
+      />
+
+      <WatchStartDialog
+        open={room.watchDialogOpen}
+        onOpenChange={room.setWatchDialogOpen}
+        onStart={({ url, title }) => {
+            room.hostStartWatch(url, title);
+            room.setWatchDialogOpen(false);
+          }}
       />
     </div>
   );

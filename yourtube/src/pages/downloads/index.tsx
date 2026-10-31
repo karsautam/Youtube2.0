@@ -46,14 +46,14 @@ const Downloads = () => {
       .finally(() => setLoading(false));
   }, [user?._id]);
 
-  const handleDelete = async (videoId: string) => {
+  const handleDelete = async (recordId: string) => {
     if (!user?._id) return;
     try {
-      await axiosInstance.delete(`/download/record/${videoId}`, {
+      await axiosInstance.delete(`/download/id/${recordId}`, {
         data: { userId: user._id },
       });
       setDownloads((prev) =>
-        prev.filter((d) => String(d.videoId?._id) !== String(videoId))
+        prev.filter((d) => String(d._id) !== String(recordId))
       );
       toast.success("Removed from your downloads");
     } catch (err: any) {
@@ -76,36 +76,47 @@ const Downloads = () => {
           <div className="space-y-3">
             {downloads.map((d) => {
               const v = d.videoId || {};
+              const watchHref = v._id ? `/watch/${v._id}` : null;
+              const createdAt = d.createdAt ? new Date(d.createdAt) : null;
               return (
                 <div
                   key={d._id}
                   className="group flex flex-col gap-2 border rounded-lg p-3 hover:bg-muted transition-colors sm:flex-row sm:items-center sm:gap-3"
                 >
-                  <Link
-                    href={`/watch/${v._id}`}
-                    className="flex-shrink-0"
-                  >
-                    <div className="w-full aspect-video bg-muted rounded overflow-hidden sm:w-36">
-                      {v.thumbnail && (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={mediaUrl(v.thumbnail) ?? ""}
-                          alt={v.videotitle}
-                          className="object-cover w-full h-full"
-                        />
-                      )}
-                    </div>
-                  </Link>
+                  {watchHref ? (
+                    <Link href={watchHref} className="flex-shrink-0">
+                      <div className="w-full aspect-video bg-muted rounded overflow-hidden sm:w-36">
+                        {v.thumbnail && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={mediaUrl(v.thumbnail) ?? ""}
+                            alt={v.videotitle || ""}
+                            className="object-cover w-full h-full"
+                          />
+                        )}
+                      </div>
+                    </Link>
+                  ) : (
+                    <div className="w-full aspect-video bg-muted rounded overflow-hidden sm:w-36" />
+                  )}
                   <div className="flex items-start gap-2 flex-1 min-w-0">
                     <div className="flex-1 min-w-0">
-                      <Link href={`/watch/${v._id}`}>
-                        <h3 className="font-medium text-sm line-clamp-none sm:line-clamp-1">
-                          {v.videotitle}
+                      {watchHref ? (
+                        <Link href={watchHref}>
+                          <h3 className="font-medium text-sm line-clamp-none sm:line-clamp-1">
+                            {v.videotitle || "Video unavailable"}
+                          </h3>
+                        </Link>
+                      ) : (
+                        <h3 className="font-medium text-sm line-clamp-none sm:line-clamp-1 text-muted-foreground">
+                          {v.videotitle || "Video no longer available"}
                         </h3>
-                      </Link>
+                      )}
                       <p className="text-xs text-muted-foreground mt-0.5">
                         Downloaded{" "}
-                        {format(new Date(d.createdAt), "dd MMM yyyy, hh:mm a")}
+                        {createdAt && !isNaN(createdAt.getTime())
+                          ? format(createdAt, "dd MMM yyyy, hh:mm a")
+                          : "—"}
                       </p>
                       <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5 text-xs text-muted-foreground">
                         <span>Size: {formatSize(d.fileSizeBytes)}</span>
@@ -131,7 +142,7 @@ const Downloads = () => {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem
-                          onClick={() => handleDelete(String(v._id))}
+                          onClick={() => handleDelete(String(d._id))}
                         >
                           <Trash2 className="w-4 h-4 mr-2 text-red-600" />
                           Remove from downloads

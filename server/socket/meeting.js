@@ -116,6 +116,7 @@ export function initMeetingSocket(io) {
             permissions: r.permissions,
             locked: r.locked,
             chat: r.chat,
+            watch: r.watch,
           });
           io.to(rid).emit("meet:participant-status", {
             socketId: socket.id,
@@ -178,6 +179,7 @@ export function initMeetingSocket(io) {
           permissions: r.permissions,
           locked: r.locked,
           chat: r.chat,
+          watch: r.watch,
         });
         socket.to(rid).emit("meet:participant-joined", participantPayload(self));
       } catch (error) {
@@ -308,6 +310,49 @@ export function initMeetingSocket(io) {
       r.chat.push(message);
       if (r.chat.length > store.CHAT_LIMIT) r.chat.splice(0, r.chat.length - store.CHAT_LIMIT);
       io.to(roomId).emit("chat:file", message);
+    });
+
+    // ---------- Watch together (host controls playback for everyone) ----------
+    socket.on("watch:start", ({ url, title }) => {
+      const r = currentRoom();
+      if (!r || !canModerate()) return;
+      const cleanUrl = String(url || "").trim().slice(0, 1000);
+      const cleanTitle = String(title || "Video").trim().slice(0, 200) || "Video";
+      if (!cleanUrl) return;
+      r.watch = {
+        url: cleanUrl,
+        title: cleanTitle,
+        playing: true,
+        position: 0,
+        updatedAt: Date.now(),
+        startedBy: self.id,
+      };
+      io.to(roomId).emit("watch:started", r.watch);
+    });
+
+    socket.on("watch:state", ({ playing, position, hostTs }) => {
+      const r = currentRoom();
+      if (!r || !canModerate() || !r.watch) return;
+      const now = Date.now();
+      // Project the host's playback position onto the server clock so every
+      // participant (and late joiners via bootstrap) shares one time base.
+      const msSinceHost = Math.max(0, now - (Number(hostTs) || now));
+      const projected = Math.max(0, (Number(position) || 0) + msSinceHost / 1000);
+      r.watch.playing = Boolean(playing);
+      r.watch.position = projected;
+      r.watch.updatedAt = now;
+      io.to(roomId).emit("watch:state", {
+        playing: r.watch.playing,
+        position: r.watch.position,
+        updatedAt: r.watch.updatedAt,
+      });
+    });
+
+    socket.on("watch:stop", () => {
+      const r = currentRoom();
+      if (!r || !canModerate() || !r.watch) return;
+      r.watch = null;
+      io.to(roomId).emit("watch:stopped");
     });
 
     // ---------- Host moderation ----------

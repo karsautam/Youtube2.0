@@ -41,14 +41,27 @@ async function resolveLocation(device) {
   }
 }
 
-// Send the OTP email but never block login forever: wait up to ~8s for the
-// result. If the email could not be delivered (SMTP down/misconfigured), the
-// code is returned so the user can still sign in instead of being stuck.
+// The location is cosmetic: never let a slow ip-api call delay the OTP email.
+async function resolveLocationFast(device, ms = 400) {
+  if (device?.location) return device.location;
+  const location = await Promise.race([
+    resolveLocation(device),
+    new Promise((resolve) => setTimeout(() => resolve(""), ms)),
+  ]);
+  device.location = location || "";
+  return device.location;
+}
+
+// Send the OTP email but never block login forever: wait up to ~20s for the
+// result. Gmail SMTP can occasionally take 8-15s under load, so the old 8s
+// cutoff reported a failure (and exposed the code) while the email still landed.
+// If the email truly could not be delivered, the code is returned so the user
+// can still sign in instead of being stuck.
 async function sendDeviceOtpEmailBounded(email, code, device) {
   try {
     const result = await Promise.race([
       sendNewDeviceOtpEmail(email, code, device, OTP_TTL_MINUTES),
-      new Promise((resolve) => setTimeout(() => resolve(null), 8000)),
+      new Promise((resolve) => setTimeout(() => resolve(null), 20000)),
     ]);
     if (result === true) return { sent: true, devCode: null };
     if (result === false) {
@@ -67,41 +80,46 @@ async function sendDeviceOtpEmailBounded(email, code, device) {
 // Save/refresh a session immediately and update its location in the background
 // once the IP lookup resolves — this keeps login fast (never blocks on ip-api).
 async function saveSession(userId, deviceId, device) {
-  const known = await usersession.findOne({ user: userId, deviceId });
-  if (known) {
-    known.lastSeen = new Date();
-    known.deviceLabel = device.deviceLabel;
-    known.browser = device.browser;
-    known.os = device.os;
-    known.ip = device.ip;
-    known.revoked = false;
-    await known.save();
-    resolveLocation(device).then((loc) => {
-      if (loc) {
-        usersession
-          .updateOne({ _id: known._id }, { $set: { location: loc } })
-          .catch(() => {});
-      }
-    });
-    return known;
-  }
-  const created = await usersession.create({
-    user: userId,
-    deviceId,
+  const updates = {
+    lastSeen: new Date(),
     deviceLabel: device.deviceLabel,
     browser: device.browser,
     os: device.os,
     ip: device.ip,
-    location: "",
-  });
-  resolveLocation(device).then((loc) => {
-    if (loc) {
-      usersession
-        .updateOne({ _id: created._id }, { $set: { location: loc } })
-        .catch(() => {});
+    revoked: false,
+  };
+
+  let session = null;
+  try {
+    session = await usersession.findOneAndUpdate(
+      { user: userId, deviceId },
+      { $set: updates, $setOnInsert: { location: "" } },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+  } catch (error) {
+    // Two concurrent logins can race on the unique (user, deviceId) index.
+    // If the other request won the insert, just update the existing row.
+    if (error?.code === 11000) {
+      session = await usersession.findOneAndUpdate(
+        { user: userId, deviceId },
+        { $set: updates },
+        { new: true }
+      );
+    } else {
+      throw error;
     }
-  });
-  return created;
+  }
+
+  if (session) {
+    resolveLocation(device).then((loc) => {
+      if (loc) {
+        usersession
+          .updateOne({ _id: session._id }, { $set: { location: loc } })
+          .catch(() => {});
+      }
+    });
+  }
+  return session;
 }
 
 // Core login: creates the backend user if needed, then decides whether this
@@ -118,10 +136,13 @@ export const login = async (req, res) => {
   }
 
   try {
-    let existingUser = await users.findOne({ email: normalized });
-    if (!existingUser) {
-      existingUser = await users.create({ email: normalized, name, image, location: "" });
-    }
+    // Atomic find-or-create so two concurrent logins (e.g. signInWithPopup and
+    // onAuthStateChanged) cannot create two user documents for one email.
+    let existingUser = await users.findOneAndUpdate(
+      { email: normalized },
+      { $setOnInsert: { email: normalized, name, image, location: "" } },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
 
     const device = await buildDeviceInfo(req);
 
@@ -171,7 +192,7 @@ export const login = async (req, res) => {
         expiresAt,
       });
 
-      await resolveLocation(device);
+      await resolveLocationFast(device);
       const { sent, devCode } = await sendDeviceOtpEmailBounded(normalized, code, device);
 
       return res.status(200).json({
@@ -269,7 +290,7 @@ export const resendDeviceOtp = async (req, res) => {
       expiresAt,
     });
 
-    await resolveLocation(device);
+    await resolveLocationFast(device);
     const { sent, devCode } = await sendDeviceOtpEmailBounded(normalized, code, device);
     return res.status(200).json({
       message: sent ? "Verification code sent." : "Email failed — code shown below.",

@@ -50,6 +50,16 @@ export type MeetingPermissions = {
   canChat: boolean;
 };
 
+export type WatchState = {
+  url: string;
+  title: string;
+  playing: boolean;
+  position: number;
+  updatedAt: number;
+  startedBy?: string;
+  recvAt?: number;
+};
+
 export type MeetingUser = {
   id: string;
   email: string;

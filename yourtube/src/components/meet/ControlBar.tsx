@@ -1,5 +1,6 @@
 ﻿import {
   CircleDot,
+  Clapperboard,
   Hand,
   MessagesSquare,
   Mic,
@@ -22,6 +23,8 @@ type Props = {
   canSwitchCamera: boolean;
   presenting: boolean;
   canShareScreen: boolean;
+  canWatch: boolean;
+  watchActive: boolean;
   chatOpen: boolean;
   chatUnread: number;
   participantsOpen: boolean;
@@ -35,6 +38,7 @@ type Props = {
   onToggleCam: () => void;
   onSwitchCamera: () => void;
   onToggleScreenShare: () => void;
+  onToggleWatch: () => void;
   onToggleChat: () => void;
   onToggleParticipants: () => void;
   onToggleInvite: () => void;
@@ -119,6 +123,19 @@ export default function ControlBar(props: Props) {
         >
           <MonitorUp className="h-5 w-5" />
         </IconButton>
+        {props.canWatch && (
+          <IconButton
+            onClick={props.onToggleWatch}
+            active={props.watchActive}
+            title={
+              props.watchActive
+                ? "Watch together (started)"
+                : "Watch video together"
+            }
+          >
+            <Clapperboard className="h-5 w-5" />
+          </IconButton>
+        )}
         {props.canRecord && (
           <IconButton
             onClick={props.onToggleRecording}

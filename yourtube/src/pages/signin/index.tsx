@@ -56,7 +56,8 @@ export default function SignInPage() {
     try {
       await handlegooglesignin();
     } catch (err: any) {
-      setError(err?.message || "Google sign-in failed");
+      // Firebase errors are surfaced through `authError` with a helpful message.
+      if (!err?.code) setError(err?.message || "Google sign-in failed");
     } finally {
       setLoading(false);
     }
@@ -187,7 +188,7 @@ export default function SignInPage() {
               <p className="text-sm text-destructive">{error}</p>
             )}
             {authError && (
-              <p className="text-sm text-destructive break-words">Auth error: {authError}</p>
+              <p className="text-sm text-destructive break-words">{authError}</p>
             )}
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Please wait..." : isSignup ? "Sign up" : "Log in"}

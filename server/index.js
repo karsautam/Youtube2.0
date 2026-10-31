@@ -20,6 +20,7 @@ import downloadroutes from "./routes/download.js";
 import otproutes from "./routes/otp.js";
 import { autoExpireSubscriptions } from "./controllers/subscription.js";
 import initMeetingSocket from "./socket/meeting.js";
+import { verifyEmailTransport } from "./services/email.js";
 
 dotenv.config();
 const app = express();
@@ -27,10 +28,10 @@ fs.mkdirSync("uploads", { recursive: true });
 fs.mkdirSync("uploads/subtitles", { recursive: true });
 fs.mkdirSync("uploads/thumbnails", { recursive: true });
 app.use(cors());
+app.post("/subscription/webhook", express.raw({ type: "application/json" }), webhookHandler);
 app.use(express.json({ limit: "100mb", extended: true }));
 app.use(express.urlencoded({ limit: "100mb", extended: true }));
 app.use("/uploads", express.static("uploads"));
-app.post("/subscription/webhook", express.raw({ type: "application/json" }), webhookHandler);
 app.get("/", (req, res) => {
   res.send("You tube backend is working");
 });
@@ -68,6 +69,7 @@ httpServer.listen(PORT,"0.0.0.0", () => {
   console.log(`server running on port ${PORT}`);
   setInterval(autoExpireSubscriptions, 60 * 60 * 1000);
   autoExpireSubscriptions();
+  verifyEmailTransport().catch(() => {});
 });
 
 const DBURL = process.env.DB_URL;

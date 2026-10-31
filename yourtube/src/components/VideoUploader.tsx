@@ -45,14 +45,23 @@ const VideoUploader = ({
   const handlefilechange = (e: ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
-      const file = files[0];
-      if (!file.type.startsWith("video/")) {
-        toast.error("Please upload a valid video file.");
-        return;
-      }
-      setVideoFile(file);
-      if (!videoTitle) setVideoTitle(file.name.replace(/\.[^.]+$/, ""));
+      acceptVideoFile(files[0]);
     }
+  };
+
+  const acceptVideoFile = (file: File) => {
+    if (!file.type.startsWith("video/")) {
+      toast.error("Please upload a valid video file.");
+      return;
+    }
+    setVideoFile(file);
+    if (!videoTitle) setVideoTitle(file.name.replace(/\.[^.]+$/, ""));
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (file) acceptVideoFile(file);
   };
 
   const handlecoverchange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -232,6 +241,8 @@ const VideoUploader = ({
           <div
             className="border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:bg-accent transition-colors"
             onClick={() => fileInputRef.current?.click()}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={handleDrop}
           >
             <Upload className="w-12 h-12 mx-auto text-muted-foreground mb-2" />
             <p className="text-lg font-medium">

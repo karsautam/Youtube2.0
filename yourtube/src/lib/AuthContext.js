@@ -14,9 +14,29 @@ import { provider, auth } from "./firebase";
 import axiosInstance from "./axiosinstance";
 import { getDeviceId } from "./deviceId";
 import OtpVerifyDialog from "@/components/OtpVerifyDialog";
-import { useEffect, useContext } from "react";
+import { useEffect, useContext, useCallback, useRef } from "react";
 
 const UserContext = createContext();
+
+function describeAuthError(error) {
+  const code = error?.code || "";
+  const origin =
+    typeof window !== "undefined" ? window.location.origin : "this address";
+  switch (code) {
+    case "auth/unauthorized-domain":
+      return `Google sign-in isn't allowed from ${origin}. Add this domain in Firebase Console → Authentication → Settings → Authorized domains, then reload. IP addresses (e.g. 192.168.x.x) can't be authorized — use a domain/tunnel (ngrok, Vercel) or localhost (Android: adb reverse tcp:3000 tcp:3000).`;
+    case "auth/operation-not-allowed":
+      return "Google sign-in is disabled for this Firebase project. Enable it in Firebase Console → Authentication → Sign-in method → Google.";
+    case "auth/popup-blocked":
+      return "Your browser blocked the Google popup. Allow popups for this site and try again.";
+    case "auth/cancelled-popup-request":
+      return "Another sign-in popup is already open. Finish or close it and try again.";
+    case "auth/network-request-failed":
+      return "Network error while contacting Google. Check your connection and try again.";
+    default:
+      return code || error?.message || String(error);
+  }
+}
 
 export const UserProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -25,14 +45,20 @@ export const UserProvider = ({ children }) => {
   const [otpEmail, setOtpEmail] = useState("");
   const [otpDevCode, setOtpDevCode] = useState("");
   const clearAuthError = () => setAuthError(null);
+  // signInWithPopup resolves AND onAuthStateChanged fires for the same sign-in,
+  // which would otherwise send two concurrent /user/login requests. That race
+  // can create duplicate sessions/users and make one request 500.
+  const syncInFlightRef = useRef(null);
+  const lastSyncRef = useRef(null);
 
   const login = (userdata) => {
     setUser(userdata);
     setPendingOtp(false);
     localStorage.setItem("user", JSON.stringify(userdata));
   };
-  const logout = async () => {
+  const logout = useCallback(async () => {
     const currentUser = user;
+    lastSyncRef.current = null;
     setUser(null);
     setPendingOtp(false);
     localStorage.removeItem("user");
@@ -50,28 +76,49 @@ export const UserProvider = ({ children }) => {
     } catch (error) {
       console.error("Error during sign out:", error);
     }
-  };
+  }, [user]);
 
   const syncBackendUser = async (firebaseuser) => {
-    const payload = {
-      email: firebaseuser.email,
-      name: firebaseuser.displayName,
-      image: firebaseuser.photoURL || "https://github.com/shadcn.png",
-      deviceId: getDeviceId(),
-    };
-    const response = await axiosInstance.post("/user/login", payload);
-    if (response.data && response.data.needOtp) {
-      // Log them in first (they land on the home page), then present the OTP
-      // dialog over whatever page they're on.
-      if (response.data.result) {
-        login(response.data.result);
-      }
-      setOtpEmail(response.data.email || firebaseuser.email);
-      setOtpDevCode(response.data.devCode || "");
-      setPendingOtp(true);
+    const key = `${firebaseuser.uid || firebaseuser.email}:${firebaseuser.email}`;
+    const inFlight = syncInFlightRef.current;
+    if (inFlight && inFlight.key === key) {
+      return inFlight.promise;
+    }
+    const last = lastSyncRef.current;
+    if (last && last.key === key && Date.now() - last.at < 5000) {
       return;
     }
-    login(response.data.result);
+    const promise = (async () => {
+      const payload = {
+        email: firebaseuser.email,
+        name: firebaseuser.displayName,
+        image: firebaseuser.photoURL || "https://github.com/shadcn.png",
+        deviceId: getDeviceId(),
+      };
+      const response = await axiosInstance.post("/user/login", payload);
+      if (response.data && response.data.needOtp) {
+        // Log them in first (they land on the home page), then present the OTP
+        // dialog over whatever page they're on.
+        if (response.data.result) {
+          login(response.data.result);
+        }
+        setOtpEmail(response.data.email || firebaseuser.email);
+        setOtpDevCode(response.data.devCode || "");
+        setPendingOtp(true);
+        return;
+      }
+      login(response.data.result);
+    })();
+    syncInFlightRef.current = { key, promise };
+    try {
+      const result = await promise;
+      lastSyncRef.current = { key, at: Date.now() };
+      return result;
+    } finally {
+      if (syncInFlightRef.current?.promise === promise) {
+        syncInFlightRef.current = null;
+      }
+    }
   };
 
   const verifyDeviceOtp = async (code) => {
@@ -104,7 +151,7 @@ export const UserProvider = ({ children }) => {
       const result = await signInWithPopup(auth, provider);
       await syncBackendUser(result.user);
     } catch (error) {
-      setAuthError(String(error?.code || error?.message || error));
+      setAuthError(describeAuthError(error));
       if (
         error?.code === "auth/popup-blocked" ||
         error?.code === "auth/operation-not-supported-in-this-environment"
@@ -166,8 +213,14 @@ export const UserProvider = ({ children }) => {
         try {
           await syncBackendUser(firebaseuser);
         } catch (error) {
-          console.error(error);
-          logout();
+          // Keep the Firebase session so a retry/refresh can sync again —
+          // force-signing-out here would also kill a login that just succeeded
+          // through signInWithPopup.
+          console.error("Backend login sync failed:", error);
+          setAuthError(
+            error?.response?.data?.message ||
+              "Could not reach the server. Please try signing in again."
+          );
         }
       }
     });

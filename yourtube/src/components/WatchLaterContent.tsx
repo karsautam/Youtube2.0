@@ -25,6 +25,8 @@ export default function WatchLaterContent() {
   useEffect(() => {
     if (user) {
       loadWatchLater();
+    } else {
+      setLoading(false);
     }
   }, [user]);
 
@@ -45,12 +47,16 @@ export default function WatchLaterContent() {
   if (loading) {
     return <ListRowSkeleton count={6} />;
   }
-  const handleRemoveFromWatchLater = async (watchLaterId: string) => {
+  const handleRemoveFromWatchLater = async (item: any) => {
+    if (!user) return;
+    const videoId = item?.videoid?._id;
     try {
-      console.log("Removing from history:", watchLaterId);
-      setWatchLater(watchLater.filter((item) => item._id !== watchLaterId));
+      if (videoId) {
+        await axiosInstance.post(`/watch/${videoId}`, { userId: user._id });
+      }
+      setWatchLater((prev) => prev.filter((x) => x._id !== item._id));
     } catch (error) {
-      console.error("Error removing from history:", error);
+      console.error("Error removing from Watch later:", error);
     }
   };
 
@@ -89,7 +95,9 @@ export default function WatchLaterContent() {
       </div>
 
       <div className="space-y-4">
-        {watchLater.map((item) => (
+        {watchLater
+          .filter((item) => item.videoid)
+          .map((item) => (
           <div key={item._id} className="flex flex-col gap-2 group sm:flex-row sm:gap-4">
             <Link
               href={`/watch/${item.videoid._id}`}
@@ -123,7 +131,7 @@ export default function WatchLaterContent() {
                 {item.videoid.videochanel}
               </p>
               <p className="text-sm text-muted-foreground">
-                {item.videoid.views.toLocaleString()} views •{" "}
+                {(item.videoid.views ?? 0).toLocaleString()} views •{" "}
                 {formatDistanceToNow(new Date(item.videoid.createdAt))} ago
               </p>
               <p className="text-xs text-muted-foreground mt-1">
@@ -143,7 +151,7 @@ export default function WatchLaterContent() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem
-                  onClick={() => handleRemoveFromWatchLater(item._id)}
+                  onClick={() => handleRemoveFromWatchLater(item)}
                 >
                   <X className="w-4 h-4 mr-2" />
                   Remove from Watch later
