@@ -106,15 +106,22 @@ async function sendBrevo({ to, subject, html }) {
   }
 }
 
-// Send through Gmail SMTP: it works from any IP and is not subject to Brevo's
-// authorised-IP allowlist (which blocks cloud hosts like Render). Brevo is only
-// used when SMTP credentials are not configured.
+// Brevo is an HTTP API, so it works on hosts that block outbound SMTP (Render
+// free tier blocks ports 25/465/587). Gmail SMTP is the fallback for local/dev,
+// where Brevo's authorised-IP rule may reject the request.
 async function deliver(message) {
-  if (process.env.SMTP_EMAIL && process.env.SMTP_PASSWORD) {
-    return sendSmtp(message);
+  const hasBrevo = Boolean(process.env.BREVO_API_KEY);
+  const hasSmtp = Boolean(process.env.SMTP_EMAIL && process.env.SMTP_PASSWORD);
+
+  if (hasBrevo) {
+    const sent = await sendBrevo(message);
+    if (sent) return true;
+    if (!hasSmtp) return false;
+    console.warn("[email] Brevo failed; trying Gmail SMTP fallback");
   }
-  console.warn("[email] SMTP not configured; falling back to Brevo");
-  return sendBrevo(message);
+  if (hasSmtp) return sendSmtp(message);
+  console.warn("[email] No email transport configured");
+  return false;
 }
 
 function formatDate(d) {
