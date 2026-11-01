@@ -31,6 +31,12 @@ function getSmtpTransporter() {
 export async function verifyEmailTransport() {
   const SMTP_EMAIL = process.env.SMTP_EMAIL;
   const SMTP_PASSWORD = process.env.SMTP_PASSWORD;
+  const smtpBlocked =
+    process.env.NODE_ENV === "production" || Boolean(process.env.RENDER);
+  if (smtpBlocked && process.env.BREVO_API_KEY) {
+    console.log("[email] Using Brevo HTTP API (SMTP ports are blocked on this host)");
+    return true;
+  }
   if (!SMTP_EMAIL || !SMTP_PASSWORD) {
     console.warn("[email] SMTP credentials not set — will use Brevo HTTP API");
     return false;
@@ -106,19 +112,32 @@ async function sendBrevo({ to, subject, html }) {
   }
 }
 
-// Brevo is an HTTP API, so it works on hosts that block outbound SMTP (Render
-// free tier blocks ports 25/465/587). Gmail SMTP is the fallback for local/dev,
-// where Brevo's authorised-IP rule may reject the request.
+// Render's free tier blocks outbound SMTP ports (25/465/587), so production
+// must use Brevo's HTTP API. Locally we prefer Gmail SMTP: it sends from the
+// real Gmail address and lands in the inbox, whereas Brevo rewrites the sender
+// to its shared brevosend.com domain, which Gmail often files as spam.
 async function deliver(message) {
   const hasBrevo = Boolean(process.env.BREVO_API_KEY);
   const hasSmtp = Boolean(process.env.SMTP_EMAIL && process.env.SMTP_PASSWORD);
+  const preferSmtp =
+    hasSmtp && process.env.NODE_ENV !== "production" && !process.env.RENDER;
+
+  if (preferSmtp) {
+    const sent = await sendSmtp(message);
+    if (sent) return true;
+    if (!hasBrevo) return false;
+    console.warn("[email] Gmail SMTP failed; trying Brevo");
+    return sendBrevo(message);
+  }
 
   if (hasBrevo) {
     const sent = await sendBrevo(message);
     if (sent) return true;
     if (!hasSmtp) return false;
     console.warn("[email] Brevo failed; trying Gmail SMTP fallback");
+    return sendSmtp(message);
   }
+
   if (hasSmtp) return sendSmtp(message);
   console.warn("[email] No email transport configured");
   return false;

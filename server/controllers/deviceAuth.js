@@ -146,8 +146,13 @@ export const login = async (req, res) => {
 
     const device = await buildDeviceInfo(req);
 
-    // Is this device already trusted for this account?
-    const known = await usersession.findOne({ user: existingUser._id, deviceId });
+    // Is this device already trusted for this account? A revoked session (the
+    // device was signed out or replaced) is not trusted.
+    const known = await usersession.findOne({
+      user: existingUser._id,
+      deviceId,
+      revoked: { $ne: true },
+    });
 
     // Any OTHER distinct device VERY RECENTLY active on this account?
     const otherActive = await usersession
@@ -159,7 +164,42 @@ export const login = async (req, res) => {
       })
       .countDocuments();
 
-    if (!known && otherActive > 0) {
+    let canLoginWithoutOtp = false;
+    if (known) {
+      // Known device stays trusted unless a DIFFERENT device is the designated
+      // active one and that device is still live.
+      const active = existingUser.activeDeviceId;
+      canLoginWithoutOtp = !active || active === deviceId || otherActive === 0;
+    }
+
+    // Two brand-new devices can sign in at the same moment. Both would see
+    // otherActive === 0 and both would skip OTP, leaving two active devices.
+    // Claim the single active-device slot atomically so exactly one wins.
+    if (!canLoginWithoutOtp && otherActive === 0) {
+      if (existingUser.activeDeviceId && existingUser.activeDeviceId !== deviceId) {
+        // The recorded active device has no live session -> release the slot.
+        await users.updateOne(
+          { _id: existingUser._id, activeDeviceId: existingUser.activeDeviceId },
+          { $set: { activeDeviceId: null } }
+        );
+      }
+      const claimed = await users.findOneAndUpdate(
+        {
+          _id: existingUser._id,
+          $or: [
+            { activeDeviceId: null },
+            { activeDeviceId: "" },
+            { activeDeviceId: { $exists: false } },
+            { activeDeviceId: deviceId },
+          ],
+        },
+        { $set: { activeDeviceId: deviceId } },
+        { new: true }
+      );
+      canLoginWithoutOtp = Boolean(claimed);
+    }
+
+    if (!canLoginWithoutOtp) {
       // A NEW device logging into an account that's active on another device.
       // Allow the login but also flag that this device needs OTP verification.
       const existing = await OTP.findOne({
@@ -221,7 +261,12 @@ export const login = async (req, res) => {
     // Trusted device (known) or first device for this account: allow login
     // and record/refresh the session.
     await saveSession(existingUser._id, deviceId, device);
+    await users.updateOne(
+      { _id: existingUser._id },
+      { $set: { activeDeviceId: deviceId } }
+    );
 
+    existingUser.activeDeviceId = deviceId;
     return res.status(200).json({ result: existingUser });
   } catch (error) {
     console.error("Login error:", error);
@@ -244,6 +289,12 @@ export const logout = async (req, res) => {
     await usersession.updateOne(
       { user: userId, deviceId, revoked: { $ne: true } },
       { $set: { revoked: true, lastSeen: new Date() } }
+    );
+    // Free the single active-device slot so the next device can sign in
+    // without a verification code.
+    await users.updateOne(
+      { _id: userId, activeDeviceId: deviceId },
+      { $set: { activeDeviceId: null } }
     );
     return res.status(200).json({ message: "Signed out" });
   } catch (error) {
@@ -367,6 +418,10 @@ export const verifyDeviceLogin = async (req, res) => {
     await usersession.updateMany(
       { user: user._id, deviceId: { $ne: deviceId }, revoked: { $ne: true } },
       { $set: { revoked: true } }
+    );
+    await users.updateOne(
+      { _id: user._id },
+      { $set: { activeDeviceId: deviceId } }
     );
 
     return res.status(200).json({

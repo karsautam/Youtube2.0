@@ -6,6 +6,9 @@ const userschema = mongoose.Schema({
   description: { type: String },
   image: { type: String },
   location: { type: String, default: "" },
+  // The one device currently allowed to stay signed in (single-device policy).
+  // Claimed atomically so two simultaneous logins cannot both skip OTP.
+  activeDeviceId: { type: String, default: null },
   joinedon: { type: Date, default: Date.now },
 });
 
