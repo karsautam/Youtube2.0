@@ -39,9 +39,7 @@ export default function ParticipantTile({ participant, stream, isSelf, showFulls
     const bind = () => {
       if (!el) return;
       if (el.srcObject !== stream) el.srcObject = stream;
-      // Audio is played by the single MeetingAudio sink so it keeps working
-      // when the camera is off and never doubles up in fullscreen/minimized.
-      el.muted = true;
+      el.muted = Boolean(isSelf);
       el.play().catch(() => {});
     };
     bind();
@@ -87,7 +85,7 @@ export default function ParticipantTile({ participant, stream, isSelf, showFulls
           ref={videoRef}
           autoPlay
           playsInline
-          muted
+          muted={isSelf}
           className="h-full w-full object-cover"
         />
       ) : (
@@ -124,6 +122,7 @@ export default function ParticipantTile({ participant, stream, isSelf, showFulls
           participant={participant}
           stream={stream}
           onClose={() => setIsFullscreen(false)}
+          isSelf={isSelf}
         />
       )}
 
@@ -190,10 +189,12 @@ function FullscreenView({
   participant,
   stream,
   onClose,
+  isSelf,
 }: {
   participant: Participant;
   stream: MediaStream | null;
   onClose: () => void;
+  isSelf?: boolean;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -265,7 +266,7 @@ function FullscreenView({
           ref={videoRef}
           autoPlay
           playsInline
-          muted
+          muted={Boolean(isSelf)}
           className="h-full w-full object-contain"
         />
       ) : (

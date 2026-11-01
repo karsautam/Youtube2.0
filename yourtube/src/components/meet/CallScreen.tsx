@@ -164,10 +164,10 @@ export default function CallScreen({
   const router = useRouter();
   return (
     <div className="relative flex h-full bg-slate-950 text-white">
-      <MeetingAudio
+      {/* <MeetingAudio
         participantStreams={room.participantStreams}
         selfSocketId={room.self?.socketId ?? null}
-      />
+      /> */}
       {room.connectionState === "reconnecting" && (
         <div className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-3 bg-slate-950/80 backdrop-blur-sm">
           <span className="h-12 w-12 animate-spin rounded-full border-4 border-blue-500 border-t-transparent" />
