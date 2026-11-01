@@ -140,6 +140,16 @@ const Header = ({ onMenuToggle }: { onMenuToggle?: () => void }) => {
             >
               <Search className="w-5 h-5" />
             </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+              className="hidden transition-all duration-200 hover:bg-accent hover:shadow-sm hover:scale-110 active:bg-accent active:scale-95 active:shadow-inner sm:inline-flex"
+            >
+              <Sun className="w-6 h-6 hidden dark:block" />
+              <Moon className="w-6 h-6 dark:hidden" />
+            </Button>
             {user ? (
               <>
                 <Button
@@ -153,23 +163,13 @@ const Header = ({ onMenuToggle }: { onMenuToggle?: () => void }) => {
                     <VideoIcon className="w-6 h-6" />
                   </Link>
                 </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-              className="hidden transition-all duration-200 hover:bg-accent hover:shadow-sm hover:scale-110 active:bg-accent active:scale-95 active:shadow-inner sm:inline-flex"
-            >
-              <Sun className="w-6 h-6 hidden dark:block" />
-              <Moon className="w-6 h-6 dark:hidden" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="hidden transition-all duration-200 hover:bg-accent hover:shadow-sm hover:scale-110 active:bg-accent active:scale-95 active:shadow-inner sm:inline-flex"
-            >
-              <Bell className="w-6 h-6" />
-            </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="hidden transition-all duration-200 hover:bg-accent hover:shadow-sm hover:scale-110 active:bg-accent active:scale-95 active:shadow-inner sm:inline-flex"
+                >
+                  <Bell className="w-6 h-6" />
+                </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
