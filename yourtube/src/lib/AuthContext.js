@@ -92,14 +92,17 @@ export const UserProvider = ({ children }) => {
       const providerIds = (firebaseuser.providerData || []).map(
         (p) => p.providerId
       );
+      const provider =
+        providerIds.includes("google.com") ||
+        firebaseuser.providerId === "google.com"
+          ? "google.com"
+          : providerIds[0] || (firebaseuser.email ? "google.com" : "");
       const payload = {
         email: firebaseuser.email,
         name: firebaseuser.displayName,
         image: firebaseuser.photoURL || "https://github.com/shadcn.png",
         deviceId: getDeviceId(),
-        provider: providerIds.includes("google.com")
-          ? "google.com"
-          : providerIds[0] || "",
+        provider,
       };
       const response = await axiosInstance.post("/user/login", payload);
       if (response.data && response.data.needOtp) {
@@ -160,7 +163,8 @@ export const UserProvider = ({ children }) => {
       setAuthError(describeAuthError(error));
       if (
         error?.code === "auth/popup-blocked" ||
-        error?.code === "auth/operation-not-supported-in-this-environment"
+        error?.code === "auth/operation-not-supported-in-this-environment" ||
+        error?.code === "auth/cancelled-popup-request"
       ) {
         try {
           sessionStorage.setItem("yt_redirect_pending", "1");
@@ -190,21 +194,21 @@ export const UserProvider = ({ children }) => {
   useEffect(() => {
     let active = true;
     getRedirectResult(auth)
-      .then((result) => {
+      .then(async (result) => {
         if (!active) return;
         if (result && result.user) {
           sessionStorage.removeItem("yt_redirect_pending");
-          return syncBackendUser(result.user);
+          await syncBackendUser(result.user);
+          return;
         }
         if (sessionStorage.getItem("yt_redirect_pending")) {
           sessionStorage.removeItem("yt_redirect_pending");
           console.warn("getRedirectResult: no pending sign-in found after redirect");
-          setAuthError("redirect-came-back-empty");
         }
       })
       .catch((error) => {
         console.error("getRedirectResult error:", error?.code, error?.message);
-        setAuthError(String(error?.code || error?.message || error));
+        setAuthError(describeAuthError(error));
       });
     return () => {
       active = false;
