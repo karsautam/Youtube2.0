@@ -5,11 +5,13 @@ import { useUser } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Moon, Sun } from "lucide-react";
+import { useTheme } from "next-themes";
 
 export default function SignInPage() {
   const router = useRouter();
   const { user, pendingOtp, handlegooglesignin, handleEmailLogin, handleEmailSignup, authError, clearAuthError } = useUser();
+  const { theme, setTheme } = useTheme();
   const [isSignup, setIsSignup] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -64,7 +66,17 @@ export default function SignInPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
+    <div className="min-h-screen flex items-center justify-center bg-background px-4 relative">
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+        title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+        className="absolute top-4 right-4"
+      >
+        <Sun className="h-5 w-5 hidden dark:block" />
+        <Moon className="h-5 w-5 dark:hidden" />
+      </Button>
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center space-y-1">
           <Link href="/" className="inline-flex items-center gap-2 mb-4">
