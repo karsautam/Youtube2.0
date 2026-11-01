@@ -3,7 +3,9 @@
   Bell,
   Menu,
   Mic,
+  Moon,
   Search,
+  Sun,
   User,
   VideoIcon,
 } from "lucide-react";
@@ -23,9 +25,11 @@ import {
 import Channeldialogue from "./channeldialogue";
 import { useRouter } from "next/router";
 import { useUser } from "@/lib/AuthContext";
+import { useTheme } from "next-themes";
 
 const Header = ({ onMenuToggle }: { onMenuToggle?: () => void }) => {
   const { user, logout } = useUser();
+  const { theme, setTheme } = useTheme();
   const [searchQuery, setSearchQuery] = useState("");
   const [isdialogeopen, setisdialogeopen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
@@ -149,13 +153,23 @@ const Header = ({ onMenuToggle }: { onMenuToggle?: () => void }) => {
                     <VideoIcon className="w-6 h-6" />
                   </Link>
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="hidden transition-all duration-200 hover:bg-accent hover:shadow-sm hover:scale-110 active:bg-accent active:scale-95 active:shadow-inner sm:inline-flex"
-                >
-                  <Bell className="w-6 h-6" />
-                </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+              className="hidden transition-all duration-200 hover:bg-accent hover:shadow-sm hover:scale-110 active:bg-accent active:scale-95 active:shadow-inner sm:inline-flex"
+            >
+              <Sun className="w-6 h-6 hidden dark:block" />
+              <Moon className="w-6 h-6 dark:hidden" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="hidden transition-all duration-200 hover:bg-accent hover:shadow-sm hover:scale-110 active:bg-accent active:scale-95 active:shadow-inner sm:inline-flex"
+            >
+              <Bell className="w-6 h-6" />
+            </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
