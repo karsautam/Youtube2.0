@@ -154,6 +154,9 @@ export default function SubscriptionPage() {
         name: "YourTube", description: data.plan.toUpperCase() + " - " + CYCLE_LABELS[data.billingCycle],
         order_id: data.orderId,
         handler: async (response: any) => {
+          // Only the verify call decides whether we report a failure. The
+          // dashboard refresh below is best-effort and must never surface as
+          // "payment verification failed".
           try {
             const verifyRes = await axiosInstance.post("/subscription/verify", {
               razorpay_order_id: response.razorpay_order_id,
@@ -162,12 +165,41 @@ export default function SubscriptionPage() {
               userId: user._id,
             });
             toast.success("Payment successful! " + verifyRes.data.plan.toUpperCase() + " plan activated.");
+          } catch (verifyErr: any) {
+            // The server may have activated the plan even if this response was
+            // lost (Render cold start / transient network). Trust server state.
+            let activated = false;
+            try {
+              const statusRes = await axiosInstance.get("/subscription/status/" + user._id);
+              const s = statusRes.data;
+              if (
+                s?.status === "active" &&
+                s?.plan && s.plan !== "free" &&
+                s.razorpayPaymentId === response.razorpay_payment_id
+              ) {
+                activated = true;
+                setSubStatus(s);
+                toast.success("Payment successful! " + s.plan.toUpperCase() + " plan activated.");
+              }
+            } catch {
+              /* network still down; fall through to the error toast */
+            }
+            if (!activated) {
+              console.error("Payment verification failed:", verifyErr?.response?.data || verifyErr);
+              toast.error(verifyErr?.response?.data?.message || "Payment verification failed. Contact support.");
+              return;
+            }
+          }
+
+          try {
             const res = await axiosInstance.get("/subscription/status/" + user._id);
             setSubStatus(res.data);
             const billingRes = await axiosInstance.get("/subscription/billing/" + user._id);
             setBillingHistory(billingRes.data.billingHistory || []);
-            setActiveTab("dashboard");
-          } catch { toast.error("Payment verification failed. Contact support."); }
+          } catch (refreshErr) {
+            console.error("Post-payment refresh failed:", refreshErr);
+          }
+          setActiveTab("dashboard");
         },
         prefill: { name: user.name || "", email: user.email || "" },
         theme: { color: "#f59e0b" },

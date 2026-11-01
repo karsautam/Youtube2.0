@@ -321,40 +321,81 @@ export const verifyPayment = async (req, res) => {
     }
     const sub = await Subscription.findOne({ userId });
     if (!sub) return res.status(404).json({ message: "Subscription not found" });
+
+    // Idempotent: a retried request (or one whose response was lost) must not
+    // extend the plan twice or fail after the plan is already active. Also
+    // repairs a billing row that an earlier failed request left pending.
+    if (sub.razorpayPaymentId === razorpay_payment_id && sub.paymentStatus === "captured") {
+      await BillingHistory.findOneAndUpdate(
+        { razorpayOrderId: razorpay_order_id },
+        { $set: { razorpayPaymentId: razorpay_payment_id, subscriptionId: sub._id,
+          paymentStatus: "captured", paymentMethod: "razorpay",
+          periodStart: sub.startDate, periodEnd: sub.expiryDate } }
+      );
+      return res.status(200).json({
+        message: "Payment already verified", plan: sub.plan, status: sub.status,
+        expiryDate: sub.expiryDate, billingCycle: sub.billingCycle,
+        alreadyVerified: true,
+      });
+    }
+
     if (sub.razorpayOrderId !== razorpay_order_id) {
       return res.status(400).json({ message: "Order mismatch" });
     }
     const now = new Date();
     const expiry = calcExpiryDate(sub.intendedCycle || sub.billingCycle, now);
-    sub.razorpayPaymentId = razorpay_payment_id;
-    sub.plan = sub.intendedPlan || sub.plan;
-    sub.billingCycle = sub.intendedCycle || sub.billingCycle;
-    sub.status = "active";
-    sub.paymentStatus = "captured";
-    sub.startDate = now;
-    sub.expiryDate = expiry;
-    sub.nextRenewalDate = expiry;
-    sub.cancelAtPeriodEnd = false;
-    sub.autoRenew = true;
-    sub.intendedPlan = null;
-    sub.intendedCycle = null;
-    await sub.save();
+
+    // Atomic claim so two concurrent verifies cannot both extend the plan.
+    const updated = await Subscription.findOneAndUpdate(
+      { _id: sub._id, razorpayPaymentId: { $ne: razorpay_payment_id } },
+      {
+        $set: {
+          razorpayPaymentId: razorpay_payment_id,
+          plan: sub.intendedPlan || sub.plan,
+          billingCycle: sub.intendedCycle || sub.billingCycle,
+          status: "active",
+          paymentStatus: "captured",
+          startDate: now,
+          expiryDate: expiry,
+          nextRenewalDate: expiry,
+          cancelAtPeriodEnd: false,
+          autoRenew: true,
+          intendedPlan: null,
+          intendedCycle: null,
+        },
+      },
+      { new: true }
+    );
+
+    if (!updated) {
+      const current = await Subscription.findById(sub._id);
+      return res.status(200).json({
+        message: "Payment already verified",
+        plan: current?.plan || sub.plan,
+        status: current?.status || "active",
+        expiryDate: current?.expiryDate || sub.expiryDate,
+        billingCycle: current?.billingCycle || sub.billingCycle,
+        alreadyVerified: true,
+      });
+    }
 
     await BillingHistory.findOneAndUpdate(
       { razorpayOrderId: razorpay_order_id },
-      { razorpayPaymentId, subscriptionId: sub._id, paymentStatus: "captured",
-        paymentMethod: "razorpay", periodStart: now, periodEnd: expiry }
+      { razorpayPaymentId: razorpay_payment_id, subscriptionId: updated._id,
+        paymentStatus: "captured", paymentMethod: "razorpay",
+        periodStart: now, periodEnd: expiry }
     );
 
     const userInfo = await User.findById(userId);
-    const planDef = PLAN_MAP[sub.plan];
-    if (userInfo) {
-      sendSubscriptionConfirmation(userInfo, sub, planDef).catch(() => {});
+    const planDef = PLAN_MAP[updated.plan];
+    if (userInfo && planDef) {
+      sendSubscriptionConfirmation(userInfo, updated, planDef).catch(() => {});
     }
 
     return res.status(200).json({
-      message: "Payment verified", plan: sub.plan, status: sub.status,
-      expiryDate: sub.expiryDate, billingCycle: sub.billingCycle,
+      message: "Payment verified", plan: updated.plan, status: updated.status,
+      expiryDate: updated.expiryDate, billingCycle: updated.billingCycle,
+      alreadyVerified: false,
     });
   } catch (error) {
     console.error("verifyPayment error:", error);
