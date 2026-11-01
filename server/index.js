@@ -33,7 +33,19 @@ app.use(express.json({ limit: "100mb", extended: true }));
 app.use(express.urlencoded({ limit: "100mb", extended: true }));
 app.use("/uploads", express.static("uploads"));
 app.get("/", (req, res) => {
-  res.send("You tube backend is working");
+  res.status(200).send("You tube backend is working");
+});
+
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "ok", uptime: process.uptime() });
+});
+
+app.head("/", (req, res) => {
+  res.status(200).end();
+});
+
+app.head("/health", (req, res) => {
+  res.status(200).end();
 });
 app.use(bodyParser.json());
 app.use("/user", userroutes);
