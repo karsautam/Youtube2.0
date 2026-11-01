@@ -238,7 +238,7 @@ export default function CallScreen({
 
       <main className="relative flex flex-1 flex-col items-center overflow-hidden">
         {hasWatch ? (
-          <div className="flex min-h-0 w-full flex-1 flex-col gap-3 p-4 pt-28 pb-24 sm:pt-4 sm:pb-24">
+          <div className="flex min-h-0 w-full flex-1 flex-col gap-3 p-4 pt-28 pb-28 sm:pt-4 sm:pb-24">
             <div className="relative flex min-h-0 flex-1 items-center justify-center">
               <div className="w-full max-w-5xl">
                 <WatchPanel
@@ -271,7 +271,7 @@ export default function CallScreen({
         ) : (
           <div
             className={cn(
-              "grid w-full flex-1 gap-3 p-4 pt-28 pb-24 sm:pt-4 sm:pb-24",
+              "grid w-full flex-1 gap-3 p-4 pt-28 pb-28 sm:pt-4 sm:pb-24",
               participants.length <= 1
                 ? "grid-cols-1 content-center auto-rows-fr"
                 : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 auto-rows-fr"
@@ -304,7 +304,7 @@ export default function CallScreen({
           </div>
         )}
 
-        <div className="absolute inset-x-0 top-14 z-20 flex justify-center px-4 sm:top-auto sm:bottom-3">
+        <div className="absolute inset-x-0 bottom-2 z-20 flex justify-center px-4 sm:bottom-3">
           <ControlBar
             micOn={room.media.micOn}
             camOn={room.media.camOn}
