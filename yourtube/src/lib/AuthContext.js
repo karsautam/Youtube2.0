@@ -89,11 +89,17 @@ export const UserProvider = ({ children }) => {
       return;
     }
     const promise = (async () => {
+      const providerIds = (firebaseuser.providerData || []).map(
+        (p) => p.providerId
+      );
       const payload = {
         email: firebaseuser.email,
         name: firebaseuser.displayName,
         image: firebaseuser.photoURL || "https://github.com/shadcn.png",
         deviceId: getDeviceId(),
+        provider: providerIds.includes("google.com")
+          ? "google.com"
+          : providerIds[0] || "",
       };
       const response = await axiosInstance.post("/user/login", payload);
       if (response.data && response.data.needOtp) {

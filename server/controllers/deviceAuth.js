@@ -126,7 +126,7 @@ async function saveSession(userId, deviceId, device) {
 // device is trusted. If the account is already active on a DIFFERENT device,
 // it emails an OTP and returns needOtp instead of granting access.
 export const login = async (req, res) => {
-  const { email, name, image, deviceId } = req.body;
+  const { email, name, image, deviceId, provider } = req.body;
   const normalized = String(email || "").trim().toLowerCase();
   if (!normalized) {
     return res.status(400).json({ message: "Email is required" });
@@ -145,6 +145,28 @@ export const login = async (req, res) => {
     );
 
     const device = await buildDeviceInfo(req);
+
+    // Google has already verified the account owner, so don't gate the login on
+    // an email OTP: shared-domain transactional mail is frequently filed as
+    // spam, which was locking users out. Sign in immediately instead, but keep
+    // the single-device rule by revoking every other device (last login wins).
+    if (provider === "google.com" || provider === "google") {
+      await saveSession(existingUser._id, deviceId, device);
+      await usersession.updateMany(
+        {
+          user: existingUser._id,
+          deviceId: { $ne: deviceId },
+          revoked: { $ne: true },
+        },
+        { $set: { revoked: true } }
+      );
+      await users.updateOne(
+        { _id: existingUser._id },
+        { $set: { activeDeviceId: deviceId } }
+      );
+      existingUser.activeDeviceId = deviceId;
+      return res.status(200).json({ result: existingUser });
+    }
 
     // Is this device already trusted for this account? A revoked session (the
     // device was signed out or replaced) is not trusted.
