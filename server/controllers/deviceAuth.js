@@ -376,10 +376,10 @@ export const resendDeviceOtp = async (req, res) => {
     });
 
     await resolveLocationFast(device);
-    const { sent, devCode } = await sendDeviceOtpEmailBounded(normalized, code, device);
+    const { sent } = await sendDeviceOtpEmailBounded(normalized, code, device);
     return res.status(200).json({
-      message: sent ? "Verification code sent." : "Email failed — code shown below.",
-      devCode,
+      message: sent ? "Verification code sent. Check your inbox/spam." : "Email failed — code shown below.",
+      devCode: code,
     });
   } catch (error) {
     console.error("resendDeviceOtp error:", error);

@@ -71,7 +71,7 @@ export default function OtpVerifyDialog() {
       setCooldown(60);
       if (data?.devCode) {
         setCode(data.devCode);
-        setError("Email failed — code shown above.");
+        setError("Email may be delayed/spam — use the code shown above.");
       } else {
         toast.success(data?.message || "Code sent to your email.");
       }
