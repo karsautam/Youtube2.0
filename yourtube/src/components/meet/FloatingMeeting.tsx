@@ -105,7 +105,7 @@ function Tile({
         <video
           autoPlay
           playsInline
-          muted={isSelf}
+          muted
           ref={(el) => {
             if (el && stream && el.srcObject !== stream) el.srcObject = stream;
           }}

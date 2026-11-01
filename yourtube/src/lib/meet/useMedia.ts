@@ -57,6 +57,7 @@ export function useMedia(
   const micRef = useRef(initialMicOn);
   const camRef = useRef(initialCamOn);
   const analyserRef = useRef<AnalyserNode | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
   const speakingRef = useRef(false);
   const onSpeakingRef = useRef(onSpeakingChange);
   const videoTrackListeners = useRef<((track: MediaStreamTrack | null) => void)[]>([]);
@@ -87,8 +88,30 @@ export function useMedia(
     videoTrackListeners.current.forEach((cb) => cb(track));
   }, []);
 
+  const setupAnalyser = useCallback((stream: MediaStream) => {
+    if (analyserRef.current) return;
+    if (!stream.getAudioTracks().length) return;
+    try {
+      const ctx = new AudioContext();
+      audioCtxRef.current = ctx;
+      ctx.resume().catch(() => {});
+      const src = ctx.createMediaStreamSource(stream);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 512;
+      src.connect(analyser);
+      analyserRef.current = analyser;
+    } catch {}
+  }, []);
+
   const startMedia = useCallback(async () => {
     if (streamRef.current) {
+      setMediaReady(true);
+      return;
+    }
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setPermissionError(
+        "Microphone and camera need a secure connection (HTTPS or localhost)."
+      );
       setMediaReady(true);
       return;
     }
@@ -102,54 +125,60 @@ export function useMedia(
           video: { ...VIDEO_CONSTRAINTS, facingMode: "user" },
         });
       } catch (firstErr: any) {
-        if (
-          firstErr?.name === "NotAllowedError" ||
-          firstErr?.name === "SecurityError" ||
-          firstErr?.name === "NotFoundError"
-        ) {
+        const name = firstErr?.name;
+        const recoverable =
+          name === "NotAllowedError" ||
+          name === "SecurityError" ||
+          name === "NotFoundError" ||
+          name === "NotReadableError" ||
+          name === "OverconstrainedError";
+        if (!recoverable) throw firstErr;
+
+        // Mic and camera permissions are independent: retry with the other
+        // device instead of dropping the whole call when one is unavailable.
+        try {
           stream = await navigator.mediaDevices.getUserMedia({
             audio: { ...AUDIO_CONSTRAINTS },
           });
           setPermissionError(
-            "Camera access was denied. You are connected with audio only."
+            name === "NotReadableError"
+              ? "Camera is in use by another app. Connected with audio only."
+              : "Camera access was denied. You are connected with audio only."
           );
-        } else if (firstErr?.name === "NotReadableError") {
+        } catch {
           stream = await navigator.mediaDevices.getUserMedia({
-            audio: { ...AUDIO_CONSTRAINTS },
+            video: { ...VIDEO_CONSTRAINTS, facingMode: "user" },
           });
           setPermissionError(
-            "Camera is in use by another app. Connected with audio only."
+            "Microphone access was denied. Others can see you but will not hear you."
           );
-        } else {
-          throw firstErr;
         }
       }
       streamRef.current = stream;
       cameraTrackRef.current = stream.getVideoTracks()[0] || null;
+      if (!stream.getAudioTracks().length) {
+        micRef.current = false;
+        setMicOn(false);
+      }
+      if (!stream.getVideoTracks().length) {
+        camRef.current = false;
+        setCamOn(false);
+      }
       setLocalStream(stream);
       applyTrackState();
       setMicOn(micRef.current);
       setCamOn(camRef.current);
-
-      const audioTrack = stream.getAudioTracks()[0];
-      if (audioTrack) {
-        const ctx = new AudioContext();
-        const src = ctx.createMediaStreamSource(stream);
-        const analyser = ctx.createAnalyser();
-        analyser.fftSize = 512;
-        src.connect(analyser);
-        analyserRef.current = analyser;
-      }
+      setupAnalyser(stream);
       refreshDevices();
     } catch (error) {
       setPermissionError(
-        "Microphone access was denied. You can still join and use the chat."
+        "Could not access your microphone or camera. You can still join and use the chat."
       );
     } finally {
       setRequesting(false);
       setMediaReady(true);
     }
-  }, [applyTrackState, refreshDevices]);
+  }, [applyTrackState, refreshDevices, setupAnalyser]);
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -185,15 +214,41 @@ export function useMedia(
       streamRef.current = null;
       cameraTrackRef.current = null;
       screenTrackRef.current = null;
+      analyserRef.current = null;
+      audioCtxRef.current?.close().catch(() => {});
+      audioCtxRef.current = null;
       setLocalStream(null);
     };
   }, []);
+
+  const startMic = useCallback(async () => {
+    const stream = streamRef.current;
+    if (!stream || micRef.current !== true) return;
+    if (stream.getAudioTracks().some((t) => t.readyState === "live")) return;
+    try {
+      const got = await navigator.mediaDevices.getUserMedia({
+        audio: { ...AUDIO_CONSTRAINTS },
+      });
+      const track = got.getAudioTracks()[0];
+      if (!track) return;
+      stream.addTrack(track);
+      track.enabled = micRef.current;
+      setLocalStream(new MediaStream(stream.getTracks()));
+      setupAnalyser(stream);
+      setPermissionError(null);
+    } catch {
+      micRef.current = false;
+      setMicOn(false);
+      setPermissionError("Microphone access was denied.");
+    }
+  }, [setupAnalyser]);
 
   const toggleMic = useCallback(() => {
     micRef.current = !micRef.current;
     setMicOn(micRef.current);
     applyTrackState();
-  }, [applyTrackState]);
+    if (micRef.current) void startMic();
+  }, [applyTrackState, startMic]);
 
   const startCamera = useCallback(async () => {
     const stream = streamRef.current;
@@ -248,8 +303,9 @@ export function useMedia(
       micRef.current = on;
       setMicOn(on);
       applyTrackState();
+      if (on) void startMic();
     },
-    [applyTrackState]
+    [applyTrackState, startMic]
   );
 
   const switchCamera = useCallback(async () => {
