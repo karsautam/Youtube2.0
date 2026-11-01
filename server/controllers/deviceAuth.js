@@ -256,11 +256,12 @@ export const login = async (req, res) => {
 
       // Respond first so the login is never blocked by the mail provider, then
       // send the verification email in the background. If delivery fails the
-      // user can use "Resend code", which surfaces the fallback code.
+      // user can use "Resend code", which now surfaces the code.
       res.status(200).json({
         result: existingUser,
         needOtp: true,
         email: normalized,
+        devCode: code,
         message:
           "Signed in on this device. We emailed a verification code — enter it to confirm and sign out other devices.",
       });
