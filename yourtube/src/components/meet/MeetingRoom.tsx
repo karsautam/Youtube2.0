@@ -90,7 +90,7 @@ function PreJoin({
             autoPlay
             playsInline
             muted
-            className="h-full w-full object-cover"
+            className="h-full w-full object-cover scale-x-[-1]"
           />
           {!media.localStream && (
             <div className="absolute inset-0 flex items-center justify-center text-slate-400">
