@@ -255,15 +255,13 @@ export const login = async (req, res) => {
       });
 
       // Respond first so the login is never blocked by the mail provider, then
-      // send the verification email in the background. If delivery fails the
-      // user can use "Resend code", which now surfaces the code.
+      // send the verification email in the background.
       res.status(200).json({
         result: existingUser,
         needOtp: true,
         email: normalized,
-        devCode: code,
         message:
-          "Signed in on this device. We emailed a verification code — enter it to confirm and sign out other devices.",
+          "We emailed a verification code. Enter it to confirm this device (check Spam/Promotions if needed).",
       });
 
       resolveLocationFast(device)
@@ -379,8 +377,10 @@ export const resendDeviceOtp = async (req, res) => {
     await resolveLocationFast(device);
     const { sent } = await sendDeviceOtpEmailBounded(normalized, code, device);
     return res.status(200).json({
-      message: sent ? "Verification code sent. Check your inbox/spam." : "Email failed — code shown below.",
-      devCode: code,
+      message: sent
+        ? "Verification code sent. Check your inbox/spam."
+        : "Could not send the verification email. Please try again in a moment.",
+      emailSent: sent,
     });
   } catch (error) {
     console.error("resendDeviceOtp error:", error);

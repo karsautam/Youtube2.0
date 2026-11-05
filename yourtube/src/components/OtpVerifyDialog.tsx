@@ -14,7 +14,7 @@ import { ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
 export default function OtpVerifyDialog() {
-  const { pendingOtp, otpEmail, otpDevCode, verifyDeviceOtp, resendDeviceOtp } = useUser();
+  const { pendingOtp, otpEmail, verifyDeviceOtp, resendDeviceOtp } = useUser();
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -27,7 +27,7 @@ export default function OtpVerifyDialog() {
       setError("");
       setCooldown(60);
     }
-  }, [pendingOtp, otpDevCode]);
+  }, [pendingOtp]);
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -69,10 +69,10 @@ export default function OtpVerifyDialog() {
     try {
       const data = await resendDeviceOtp();
       setCooldown(60);
-      if (data?.devCode) {
-        setError("Use the verification code shown above (also check Spam/Promotions).");
+      if (data?.emailSent === false) {
+        setError(data?.message || "Could not send the email. Please try again.");
       } else {
-        toast.success(data?.message || "Code sent to your email.");
+        toast.success(data?.message || "Verification code sent. Check your inbox/spam.");
       }
     } catch (e: any) {
       toast.error(e?.response?.data?.message || "Could not resend the code.");
@@ -108,29 +108,16 @@ export default function OtpVerifyDialog() {
         </div>
 
         <div className="space-y-4 px-6 py-5">
-          {otpDevCode ? (
-            <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-4 text-center dark:border-blue-900 dark:bg-blue-950/30">
-              <p className="text-xs font-medium text-blue-700 dark:text-blue-300">
-                Your verification code
-              </p>
-              <p className="mt-2 text-3xl font-bold tracking-[0.35em] text-blue-900 dark:text-blue-100">
-                {otpDevCode}
-              </p>
-              <p className="mt-2 text-xs text-muted-foreground">
-                We also sent this to your email. If you don&apos;t see it, check your{" "}
-                <span className="font-medium text-foreground">Spam</span> or{" "}
-                <span className="font-medium text-foreground">Promotions</span> folder.
-              </p>
-            </div>
-          ) : (
-            <div className="rounded-xl border bg-muted/30 p-4 text-center">
-              <p className="text-sm text-muted-foreground">
-                We sent a 6-digit code to{" "}
-                <span className="font-medium text-foreground">{otpEmail}</span>.
-                If it doesn&apos;t arrive, check Spam/Promotions.
-              </p>
-            </div>
-          )}
+          <div className="rounded-xl border bg-muted/30 p-4 text-center">
+            <p className="text-sm text-muted-foreground">
+              We sent a 6-digit code to{" "}
+              <span className="font-medium text-foreground">{otpEmail}</span>.
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Can&apos;t find it? Check your <span className="font-medium text-foreground">Spam</span> or{" "}
+              <span className="font-medium text-foreground">Promotions</span> folder.
+            </p>
+          </div>
 
           <div className="space-y-2">
             <Input
