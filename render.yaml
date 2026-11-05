@@ -18,7 +18,13 @@ services:
         sync: false
       - key: SMTP_PASSWORD
         sync: false
-      - key: BREVO_API_KEY
+      - key: GMAIL_USER
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_REFRESH_TOKEN
         sync: false
       - key: CLOUDINARY_CLOUD_NAME
         sync: false

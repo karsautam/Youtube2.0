@@ -124,6 +124,7 @@ async function sendViaSmtp({ to, subject, html }) {
     from: `"YourTube" <${fromEmail}>`,
     to,
     subject,
+    text: html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim(),
     html,
   });
   return true;
