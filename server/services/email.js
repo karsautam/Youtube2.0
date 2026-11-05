@@ -3,113 +3,177 @@ import { google } from "googleapis";
 
 const SEND_TIMEOUT_MS = 10000;
 
-let transporter = null;
+let smtpTransporter = null;
+let gmailClient = null;
 
-function createTransporter() {
-  if (transporter) return transporter;
+function hasGmailApiConfig() {
+  return !!(
+    (process.env.GMAIL_USER || process.env.SMTP_EMAIL) &&
+    process.env.GOOGLE_CLIENT_ID &&
+    process.env.GOOGLE_CLIENT_SECRET &&
+    process.env.GOOGLE_REFRESH_TOKEN
+  );
+}
 
-  const GMAIL_USER = process.env.GMAIL_USER || process.env.SMTP_EMAIL;
-  const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-  const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
-  const REFRESH_TOKEN = process.env.GOOGLE_REFRESH_TOKEN;
+function getGmailClient() {
+  if (gmailClient) return gmailClient;
+  if (!hasGmailApiConfig()) return null;
 
-  // Prefer Gmail API with OAuth2 (works on Render, doesn't use blocked SMTP ports)
-  if (GMAIL_USER && CLIENT_ID && CLIENT_SECRET && REFRESH_TOKEN) {
-    const OAuth2 = google.auth.OAuth2;
-    const oauth2Client = new OAuth2(
-      CLIENT_ID,
-      CLIENT_SECRET,
-      "https://developers.google.com/oauthplayground"
-    );
+  const OAuth2 = google.auth.OAuth2;
+  const oauth2Client = new OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET,
+    "https://developers.google.com/oauthplayground"
+  );
+  oauth2Client.setCredentials({
+    refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
+  });
+  gmailClient = google.gmail({ version: "v1", auth: oauth2Client });
+  return gmailClient;
+}
 
-    oauth2Client.setCredentials({
-      refresh_token: REFRESH_TOKEN,
-    });
-
-    const accessToken = oauth2Client.getAccessToken();
-
-    transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        type: "OAuth2",
-        user: GMAIL_USER,
-        clientId: CLIENT_ID,
-        clientSecret: CLIENT_SECRET,
-        refreshToken: REFRESH_TOKEN,
-        accessToken: accessToken,
-      },
-    });
-
-    console.log("[email] Using Gmail API (OAuth2)");
-    return transporter;
-  }
-
-  // Fallback to Gmail SMTP with app password (works locally, may be blocked on Render)
+function getSmtpTransporter() {
+  if (smtpTransporter) return smtpTransporter;
   const SMTP_EMAIL = process.env.SMTP_EMAIL;
   const SMTP_PASSWORD = process.env.SMTP_PASSWORD;
+  if (!SMTP_EMAIL || !SMTP_PASSWORD) return null;
 
-  if (SMTP_EMAIL && SMTP_PASSWORD) {
-    transporter = nodemailer.createTransport({
-      service: "gmail",
-      pool: true,
-      maxConnections: 1,
-      maxMessages: 50,
-      auth: {
-        user: SMTP_EMAIL,
-        pass: SMTP_PASSWORD,
-      },
-      connectionTimeout: SEND_TIMEOUT_MS,
-      greetingTimeout: SEND_TIMEOUT_MS,
-      socketTimeout: 15000,
-    });
-    console.log("[email] Using Gmail SMTP (app password)");
-    return transporter;
+  smtpTransporter = nodemailer.createTransport({
+    service: "gmail",
+    pool: true,
+    maxConnections: 1,
+    maxMessages: 50,
+    auth: { user: SMTP_EMAIL, pass: SMTP_PASSWORD },
+    connectionTimeout: SEND_TIMEOUT_MS,
+    greetingTimeout: SEND_TIMEOUT_MS,
+    socketTimeout: 15000,
+  });
+  return smtpTransporter;
+}
+
+function getSenderEmail() {
+  return process.env.GMAIL_USER || process.env.SMTP_EMAIL || "";
+}
+
+function encodeSubject(subject) {
+  // RFC 2047 encoded-word for non-ASCII safety
+  if (/^[\x20-\x7E]*$/.test(subject)) return subject;
+  return `=?UTF-8?B?${Buffer.from(subject, "utf8").toString("base64")}?=`;
+}
+
+function buildRawMessage({ from, to, subject, html }) {
+  const boundary = `yt_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+  const headers = [
+    `From: ${from}`,
+    `To: ${to}`,
+    `Subject: ${encodeSubject(subject)}`,
+    "MIME-Version: 1.0",
+    `Content-Type: multipart/alternative; boundary="${boundary}"`,
+  ];
+  const textFallback = html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  const body = [
+    `--${boundary}`,
+    'Content-Type: text/plain; charset="UTF-8"',
+    "Content-Transfer-Encoding: base64",
+    "",
+    Buffer.from(textFallback, "utf8").toString("base64"),
+    `--${boundary}`,
+    'Content-Type: text/html; charset="UTF-8"',
+    "Content-Transfer-Encoding: base64",
+    "",
+    Buffer.from(html, "utf8").toString("base64"),
+    `--${boundary}--`,
+    "",
+  ].join("\r\n");
+
+  const message = `${headers.join("\r\n")}\r\n\r\n${body}`;
+  return Buffer.from(message)
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
+}
+
+async function sendViaGmailApi({ to, subject, html }) {
+  const gmail = getGmailClient();
+  if (!gmail) return false;
+  const fromEmail = getSenderEmail();
+  if (!fromEmail) {
+    console.error("[email] Cannot send - no sender email configured");
+    return false;
   }
+  const raw = buildRawMessage({
+    from: `"YourTube" <${fromEmail}>`,
+    to,
+    subject,
+    html,
+  });
+  await gmail.users.messages.send({
+    userId: "me",
+    requestBody: { raw },
+  });
+  return true;
+}
 
-  console.warn("[email] No email credentials configured");
-  return null;
+async function sendViaSmtp({ to, subject, html }) {
+  const t = getSmtpTransporter();
+  if (!t) return false;
+  const fromEmail = getSenderEmail();
+  if (!fromEmail) return false;
+  await t.sendMail({
+    from: `"YourTube" <${fromEmail}>`,
+    to,
+    subject,
+    html,
+  });
+  return true;
 }
 
 export async function verifyEmailTransport() {
-  const t = createTransporter();
+  if (hasGmailApiConfig()) {
+    try {
+      const gmail = getGmailClient();
+      await gmail.users.getProfile({ userId: "me" });
+      console.log(`[email] Ready to send emails from ${getSenderEmail()} (Gmail API)`);
+      return true;
+    } catch (error) {
+      console.error("[email] Verification failed (Gmail API):", error.message);
+      return false;
+    }
+  }
+
+  const t = getSmtpTransporter();
   if (!t) {
     console.error("[email] Email transport not configured");
     return false;
   }
   try {
     await t.verify();
-    const sender = process.env.GMAIL_USER || process.env.SMTP_EMAIL;
-    console.log(`[email] Ready to send emails from ${sender}`);
+    console.log(`[email] Ready to send emails from ${getSenderEmail()} (SMTP)`);
     return true;
   } catch (error) {
-    console.error("[email] Verification failed:", error.message);
+    console.error("[email] Verification failed (SMTP):", error.message);
     return false;
   }
 }
 
 async function sendMail({ to, subject, html }) {
-  const t = createTransporter();
-  if (!t) {
-    console.error("[email] Cannot send - no transporter configured");
-    return false;
-  }
-
-  const fromEmail = process.env.GMAIL_USER || process.env.SMTP_EMAIL;
-  if (!fromEmail) {
-    console.error("[email] Cannot send - no sender email configured");
-    return false;
-  }
-
   const started = Date.now();
   try {
-    await t.sendMail({
-      from: `"YourTube" <${fromEmail}>`,
-      to,
-      subject,
-      html,
-    });
-    console.log(`[email] Sent to ${to} in ${Date.now() - started}ms`);
-    return true;
+    if (hasGmailApiConfig()) {
+      const ok = await sendViaGmailApi({ to, subject, html });
+      if (ok) {
+        console.log(`[email] Sent to ${to} via Gmail API in ${Date.now() - started}ms`);
+        return true;
+      }
+    }
+    const ok = await sendViaSmtp({ to, subject, html });
+    if (ok) {
+      console.log(`[email] Sent to ${to} via SMTP in ${Date.now() - started}ms`);
+      return true;
+    }
+    console.error(`[email] Cannot send to ${to} - no configured transport`);
+    return false;
   } catch (error) {
     console.error(`[email] Failed to send to ${to}:`, error.message);
     return false;
@@ -216,7 +280,7 @@ export async function sendNewDeviceOtpEmail(email, otp, deviceInfo, expiresInMin
 }
 
 export async function sendSubscriptionConfirmation(user, sub, planDef) {
-  const supportEmail = process.env.GMAIL_USER || process.env.SMTP_EMAIL || "sautamkar00@gmail.com";
+  const supportEmail = getSenderEmail() || "sautamkar00@gmail.com";
   const html = `
   <!DOCTYPE html>
   <html>
@@ -292,7 +356,7 @@ export async function sendSubscriptionConfirmation(user, sub, planDef) {
 }
 
 export async function sendCancellationEmail(user, sub, planDef) {
-  const supportEmail = process.env.GMAIL_USER || process.env.SMTP_EMAIL || "sautamkar00@gmail.com";
+  const supportEmail = getSenderEmail() || "sautamkar00@gmail.com";
   const html = `
   <!DOCTYPE html>
   <html>
