@@ -1,4 +1,4 @@
-﻿import { useRef, useState } from "react";
+﻿import { useEffect, useRef, useState } from "react";
 import { FileUp, Paperclip, Send, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +32,40 @@ export default function ChatPanel({
   const [sending, setSending] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLElement>(null);
+
+  // On phones the on-screen keyboard does not resize a fixed full-screen panel
+  // in every browser. Track the visual viewport so the message box stays above
+  // the keyboard instead of being pushed off-screen.
+  useEffect(() => {
+    const el = panelRef.current;
+    const vv = window.visualViewport;
+    if (!el || !vv) return;
+    const mq = window.matchMedia("(max-width: 639px)");
+    const update = () => {
+      if (!mq.matches) {
+        el.style.top = "";
+        el.style.bottom = "";
+        el.style.height = "";
+        return;
+      }
+      el.style.top = `${vv.offsetTop}px`;
+      el.style.bottom = "auto";
+      el.style.height = `${vv.height}px`;
+    };
+    update();
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    mq.addEventListener?.("change", update);
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+      mq.removeEventListener?.("change", update);
+      el.style.top = "";
+      el.style.bottom = "";
+      el.style.height = "";
+    };
+  }, []);
 
   const submit = (msg: string) => {
     const trimmed = msg.trim();
@@ -58,8 +92,8 @@ export default function ChatPanel({
   };
 
   return (
-    <aside className="relative z-30 flex h-[40vh] w-full flex-col border-l border-white/10 bg-slate-900 text-white sm:h-full sm:w-80 sm:max-w-[85vw]">
-      <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+    <aside ref={panelRef} className="fixed inset-0 z-50 flex h-[100dvh] w-full flex-col border-l border-white/10 bg-slate-900 text-white sm:static sm:z-auto sm:h-full sm:w-80 sm:max-w-[85vw]">
+      <div className="flex items-center justify-between border-b border-white/10 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
         <h2 className="font-semibold">In-call chat</h2>
         <Button variant="ghost" size="icon" onClick={onClose} className="text-white hover:bg-background/10">
           <X className="h-5 w-5" />
@@ -106,7 +140,7 @@ export default function ChatPanel({
         </p>
       )}
 
-      <div className="border-t border-white/10 p-3">
+      <div className="border-t border-white/10 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         <div className="mb-2 flex flex-wrap gap-1">
           {EMOJIS.map((e) => (
             <button

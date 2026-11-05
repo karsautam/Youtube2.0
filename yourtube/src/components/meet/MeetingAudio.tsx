@@ -36,7 +36,7 @@ function RemoteAudio({ stream }: { stream: MediaStream }) {
     };
   }, [stream]);
 
-  return <audio ref={audioRef} autoPlay playsInline className="hidden" />;
+  return <audio ref={audioRef} autoPlay playsInline />;
 }
 
 export default function MeetingAudio({
@@ -47,7 +47,7 @@ export default function MeetingAudio({
   selfSocketId: string | null;
 }) {
   return (
-    <div aria-hidden className="hidden">
+    <div aria-hidden className="sr-only">
       {Object.entries(participantStreams).map(([socketId, stream]) =>
         socketId === selfSocketId ? null : (
           <RemoteAudio key={socketId} stream={stream} />

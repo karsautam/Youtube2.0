@@ -85,7 +85,7 @@ export default function ParticipantTile({ participant, stream, isSelf, showFulls
           ref={videoRef}
           autoPlay
           playsInline
-          muted={isSelf}
+          muted
           className={cn("h-full w-full object-cover", isSelf && "scale-x-[-1]")}
         />
       ) : (
@@ -266,7 +266,7 @@ function FullscreenView({
           ref={videoRef}
           autoPlay
           playsInline
-          muted={Boolean(isSelf)}
+          muted
           className={cn("h-full w-full object-contain", isSelf && "scale-x-[-1]")}
         />
       ) : (

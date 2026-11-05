@@ -173,7 +173,7 @@ export function MeetingProvider({ children }: { children: ReactNode }) {
         <div
           className={
             isMeetPage && !isMinimized
-              ? "fixed inset-0 z-40 h-screen w-screen overflow-hidden"
+              ? "fixed inset-0 z-40 h-[100dvh] w-full overflow-hidden"
               : "hidden"
           }
         >

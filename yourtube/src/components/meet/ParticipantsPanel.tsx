@@ -35,8 +35,8 @@ export default function ParticipantsPanel({
   const canModerate = isHost || isCohost;
 
   return (
-    <aside className="flex h-full w-80 max-w-[85vw] flex-col border-l border-white/10 bg-slate-900 text-white">
-      <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+    <aside className="fixed inset-0 z-50 flex h-[100dvh] w-full flex-col border-l border-white/10 bg-slate-900 text-white sm:static sm:z-auto sm:h-full sm:w-80 sm:max-w-[85vw]">
+      <div className="flex items-center justify-between border-b border-white/10 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
         <h2 className="font-semibold">Participants ({participants.length})</h2>
         <Button variant="ghost" size="icon" onClick={onClose} className="text-white hover:bg-background/10">
           <X className="h-5 w-5" />

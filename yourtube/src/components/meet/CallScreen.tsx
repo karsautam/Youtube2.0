@@ -164,10 +164,10 @@ export default function CallScreen({
   const router = useRouter();
   return (
     <div className="relative flex h-full bg-slate-950 text-white">
-      {/* <MeetingAudio
+      <MeetingAudio
         participantStreams={room.participantStreams}
         selfSocketId={room.self?.socketId ?? null}
-      /> */}
+      />
       {room.connectionState === "reconnecting" && (
         <div className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-3 bg-slate-950/80 backdrop-blur-sm">
           <span className="h-12 w-12 animate-spin rounded-full border-4 border-blue-500 border-t-transparent" />
@@ -215,7 +215,7 @@ export default function CallScreen({
         </div>
       )}
 
-      <div className="absolute left-0 right-0 top-0 z-20 flex items-center justify-between px-4 py-3">
+      <div className="absolute left-0 right-0 top-0 z-20 flex items-center justify-between px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
         <div className="flex items-center gap-3 rounded-xl bg-black/40 px-3 py-1.5 backdrop-blur">
           <Avatar className="h-8 w-8 border border-white/20">
             <AvatarImage src={user.image} alt={user.name} />
@@ -238,7 +238,7 @@ export default function CallScreen({
 
       <main className="relative flex flex-1 flex-col items-center overflow-hidden">
         {hasWatch ? (
-          <div className="flex min-h-0 w-full flex-1 flex-col gap-3 p-4 pt-28 pb-28 sm:pt-4 sm:pb-24">
+          <div className="flex min-h-0 w-full flex-1 flex-col gap-3 p-4 pt-28 pb-40 sm:pt-4 sm:pb-24">
             <div className="relative flex min-h-0 flex-1 items-center justify-center">
               <div className="w-full max-w-5xl">
                 <WatchPanel
@@ -271,7 +271,7 @@ export default function CallScreen({
         ) : (
           <div
             className={cn(
-              "grid w-full flex-1 gap-3 p-4 pt-28 pb-28 sm:pt-4 sm:pb-24",
+              "grid w-full flex-1 gap-3 p-4 pt-28 pb-40 sm:pt-4 sm:pb-24",
               participants.length <= 1
                 ? "grid-cols-1 content-center auto-rows-fr"
                 : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 auto-rows-fr"
@@ -304,7 +304,7 @@ export default function CallScreen({
           </div>
         )}
 
-        <div className="absolute inset-x-0 bottom-2 z-20 flex justify-center px-4 sm:bottom-3">
+        <div className="absolute inset-x-0 bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-20 flex justify-center px-2 sm:bottom-3 sm:px-4">
           <ControlBar
             micOn={room.media.micOn}
             camOn={room.media.camOn}
@@ -335,10 +335,14 @@ export default function CallScreen({
               }
             }}
             onToggleWatch={() => room.setWatchDialogOpen(true)}
-            onToggleChat={() => room.setChatOpen(!room.chatOpen)}
-            onToggleParticipants={() =>
-              room.setParticipantsOpen(!room.participantsOpen)
-            }
+            onToggleChat={() => {
+              if (!room.chatOpen) room.setParticipantsOpen(false);
+              room.setChatOpen(!room.chatOpen);
+            }}
+            onToggleParticipants={() => {
+              if (!room.participantsOpen) room.setChatOpen(false);
+              room.setParticipantsOpen(!room.participantsOpen);
+            }}
             onToggleInvite={() => room.setInviteOpen(true)}
             onToggleHand={room.toggleRaiseHand}
             onToggleRecording={toggleRecording}

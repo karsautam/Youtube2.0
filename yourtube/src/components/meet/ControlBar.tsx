@@ -67,7 +67,7 @@ function IconButton({
       onClick={onClick}
       title={title}
       className={cn(
-        "h-12 w-12 rounded-full bg-background/10 text-white hover:bg-background/20 hover:text-white",
+        "h-10 w-10 shrink-0 rounded-full bg-background/10 text-white hover:bg-background/20 hover:text-white sm:h-12 sm:w-12 [&_svg]:h-4 [&_svg]:w-4 sm:[&_svg]:h-5 sm:[&_svg]:w-5",
         active && "bg-blue-600 hover:bg-blue-600",
         danger && "bg-red-600 hover:bg-red-700"
       )}
@@ -79,8 +79,8 @@ function IconButton({
 
 export default function ControlBar(props: Props) {
   return (
-    <div className="pointer-events-auto flex flex-wrap items-center justify-center gap-2 rounded-2xl bg-black/60 px-4 py-2 backdrop-blur">
-      <div className="flex items-center gap-2">
+    <div className="pointer-events-auto flex w-full max-w-full flex-wrap items-center justify-center gap-1.5 rounded-2xl bg-black/60 px-2 py-2 backdrop-blur sm:w-auto sm:max-w-none sm:gap-2 sm:px-4">
+      <div className="flex items-center gap-1.5 sm:gap-2">
         <IconButton
           onClick={props.onToggleMic}
           active={props.micOn}
@@ -115,7 +115,7 @@ export default function ControlBar(props: Props) {
 
       <div className="mx-1 hidden h-8 w-px bg-background/20 sm:block" />
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5 sm:gap-2">
         <IconButton
           onClick={props.onToggleScreenShare}
           active={props.presenting}
@@ -157,7 +157,7 @@ export default function ControlBar(props: Props) {
 
       <div className="mx-1 hidden h-8 w-px bg-background/20 sm:block" />
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5 sm:gap-2">
         <IconButton
           onClick={props.onToggleChat}
           active={props.chatOpen}
@@ -200,9 +200,9 @@ export default function ControlBar(props: Props) {
         </IconButton>
       </div>
 
-      <div className="ml-2 flex items-center gap-2">
+      <div className="ml-0 flex items-center gap-2 sm:ml-2">
         {props.presenting && (
-          <span className="flex items-center gap-1 rounded-full bg-blue-600 px-2 py-1 text-xs text-white">
+          <span className="hidden items-center gap-1 rounded-full bg-blue-600 px-2 py-1 text-xs text-white sm:flex">
             <MonitorUp className="h-3 w-3" /> You are presenting
           </span>
         )}
@@ -212,7 +212,7 @@ export default function ControlBar(props: Props) {
             REC
           </span>
         )}
-        <span className="rounded-full bg-background/10 px-2 py-1 text-xs tabular-nums text-white">
+        <span className="rounded-full bg-background/10 px-2 py-1 text-[10px] tabular-nums text-white sm:text-xs">
           {formatDuration(props.callDuration)}
         </span>
       </div>
