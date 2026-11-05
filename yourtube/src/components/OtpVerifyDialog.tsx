@@ -15,19 +15,19 @@ import { toast } from "sonner";
 
 export default function OtpVerifyDialog() {
   const { pendingOtp, otpEmail, otpDevCode, verifyDeviceOtp, resendDeviceOtp } = useUser();
-  const [code, setCode] = useState(otpDevCode || "");
+  const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [cooldown, setCooldown] = useState(0);
 
   useEffect(() => {
-    if (otpDevCode) setCode(otpDevCode);
-  }, [otpDevCode]);
-
-  useEffect(() => {
-    if (pendingOtp) setCooldown(60);
-  }, [pendingOtp]);
+    if (pendingOtp) {
+      setCode("");
+      setError("");
+      setCooldown(60);
+    }
+  }, [pendingOtp, otpDevCode]);
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -70,8 +70,7 @@ export default function OtpVerifyDialog() {
       const data = await resendDeviceOtp();
       setCooldown(60);
       if (data?.devCode) {
-        setCode(data.devCode);
-        setError("Email may be delayed/spam — use the code shown above.");
+        setError("Use the verification code shown above (also check Spam/Promotions).");
       } else {
         toast.success(data?.message || "Code sent to your email.");
       }
@@ -85,62 +84,80 @@ export default function OtpVerifyDialog() {
   return (
     <Dialog open={pendingOtp} onOpenChange={() => {}}>
       <DialogContent
-        className="sm:max-w-md"
+        className="sm:max-w-md overflow-hidden p-0"
         showCloseButton={false}
         onPointerDownOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <ShieldCheck className="h-5 w-5 text-blue-600" />
-            Verify this device
-          </DialogTitle>
-          <DialogDescription>
-            {otpDevCode ? (
-              <>
-                Your account was used from another device recently. We couldn&apos;t deliver the
-                verification email, so use the code shown below to finish signing in.
-              </>
-            ) : (
-              <>
-                Your account was used from another device recently. We&apos;ve sent a verification
-                code to <span className="font-medium text-foreground">{otpEmail}</span>. Enter it
-                below to finish signing in on this device.
-              </>
-            )}
-          </DialogDescription>
-        </DialogHeader>
+        <div className="border-b bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-5 text-white">
+          <DialogHeader className="space-y-1 text-left">
+            <DialogTitle className="flex items-center gap-2 text-white">
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20">
+                <ShieldCheck className="h-4 w-4" />
+              </span>
+              Verify this device
+            </DialogTitle>
+            <DialogDescription className="text-blue-50">
+              A new device is trying to sign in
+              {otpEmail ? (
+                <> to <span className="font-medium text-white">{otpEmail}</span></>
+              ) : null}
+              . Enter the 6-digit code to continue.
+            </DialogDescription>
+          </DialogHeader>
+        </div>
 
-        <div className="space-y-3">
-          {otpDevCode && (
-            <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-center">
-              <p className="text-xs text-amber-700">Email not delivered — your code is:</p>
-              <p className="mt-1 text-2xl font-bold tracking-[0.35em] text-amber-900">{otpDevCode}</p>
+        <div className="space-y-4 px-6 py-5">
+          {otpDevCode ? (
+            <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-4 text-center dark:border-blue-900 dark:bg-blue-950/30">
+              <p className="text-xs font-medium text-blue-700 dark:text-blue-300">
+                Your verification code
+              </p>
+              <p className="mt-2 text-3xl font-bold tracking-[0.35em] text-blue-900 dark:text-blue-100">
+                {otpDevCode}
+              </p>
+              <p className="mt-2 text-xs text-muted-foreground">
+                We also sent this to your email. If you don&apos;t see it, check your{" "}
+                <span className="font-medium text-foreground">Spam</span> or{" "}
+                <span className="font-medium text-foreground">Promotions</span> folder.
+              </p>
+            </div>
+          ) : (
+            <div className="rounded-xl border bg-muted/30 p-4 text-center">
+              <p className="text-sm text-muted-foreground">
+                We sent a 6-digit code to{" "}
+                <span className="font-medium text-foreground">{otpEmail}</span>.
+                If it doesn&apos;t arrive, check Spam/Promotions.
+              </p>
             </div>
           )}
-          <Input
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            placeholder="Enter 6-digit code"
-            inputMode="numeric"
-            autoFocus
-            maxLength={6}
-            className="tracking-[0.3em] text-center text-lg font-semibold"
-          />
-          {error && <p className="text-sm text-destructive">{error}</p>}
-          <p className="text-xs text-muted-foreground">
-            The code expires in 10 minutes. It will not be accepted from any
-            other device.
+
+          <div className="space-y-2">
+            <Input
+              value={code}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              placeholder="• • • • • •"
+              inputMode="numeric"
+              autoFocus
+              maxLength={6}
+              className="h-12 text-center text-xl font-semibold tracking-[0.4em]"
+            />
+            {error && (
+              <p className="text-center text-sm text-destructive">{error}</p>
+            )}
+          </div>
+
+          <p className="text-center text-xs text-muted-foreground">
+            Expires in 10 minutes • Only valid for this device
           </p>
         </div>
 
-        <DialogFooter className="flex items-center justify-between gap-2 sm:justify-between">
+        <DialogFooter className="flex items-center justify-between gap-2 border-t bg-muted/20 px-6 py-4 sm:justify-between">
           <Button
-            variant="link"
+            variant="ghost"
             size="sm"
             onClick={handleResend}
             disabled={resending || cooldown > 0}
-            className="px-0"
           >
             {resending
               ? "Resending..."
@@ -148,8 +165,12 @@ export default function OtpVerifyDialog() {
                 ? `Resend in ${cooldown}s`
                 : "Resend code"}
           </Button>
-          <Button onClick={handleVerify} disabled={loading || !code.trim()}>
-            {loading ? "Verifying..." : "Verify"}
+          <Button
+            onClick={handleVerify}
+            disabled={loading || code.trim().length < 6}
+            className="min-w-28"
+          >
+            {loading ? "Verifying..." : "Verify & sign in"}
           </Button>
         </DialogFooter>
       </DialogContent>
