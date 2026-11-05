@@ -52,12 +52,14 @@ function IconButton({
   onClick,
   active,
   danger,
+  accent,
   title,
   children,
 }: {
   onClick: () => void;
   active?: boolean;
   danger?: boolean;
+  accent?: boolean;
   title: string;
   children: React.ReactNode;
 }) {
@@ -67,8 +69,9 @@ function IconButton({
       onClick={onClick}
       title={title}
       className={cn(
-        "h-10 w-10 shrink-0 rounded-full bg-background/10 text-white hover:bg-background/20 hover:text-white sm:h-12 sm:w-12 [&_svg]:h-4 [&_svg]:w-4 sm:[&_svg]:h-5 sm:[&_svg]:w-5",
+        "h-9 w-9 shrink-0 rounded-full bg-background/10 text-white hover:bg-background/20 hover:text-white sm:h-12 sm:w-12 [&_svg]:h-4 [&_svg]:w-4 sm:[&_svg]:h-5 sm:[&_svg]:w-5",
         active && "bg-blue-600 hover:bg-blue-600",
+        accent && "bg-blue-600/80 hover:bg-blue-600",
         danger && "bg-red-600 hover:bg-red-700"
       )}
     >
@@ -79,8 +82,8 @@ function IconButton({
 
 export default function ControlBar(props: Props) {
   return (
-    <div className="pointer-events-auto flex w-full max-w-full flex-wrap items-center justify-center gap-1.5 rounded-2xl bg-black/60 px-2 py-2 backdrop-blur sm:w-auto sm:max-w-none sm:gap-2 sm:px-4">
-      <div className="flex items-center gap-1.5 sm:gap-2">
+    <div className="pointer-events-auto flex w-full max-w-full flex-wrap items-center justify-center gap-1 rounded-2xl bg-black/60 px-1.5 py-1.5 backdrop-blur sm:w-auto sm:max-w-none sm:gap-2 sm:px-4 sm:py-2">
+      <div className="flex items-center gap-1 sm:gap-2">
         <IconButton
           onClick={props.onToggleMic}
           active={props.micOn}
@@ -115,7 +118,7 @@ export default function ControlBar(props: Props) {
 
       <div className="mx-1 hidden h-8 w-px bg-background/20 sm:block" />
 
-      <div className="flex items-center gap-1.5 sm:gap-2">
+      <div className="flex items-center gap-1 sm:gap-2">
         <IconButton
           onClick={props.onToggleScreenShare}
           active={props.presenting}
@@ -157,7 +160,7 @@ export default function ControlBar(props: Props) {
 
       <div className="mx-1 hidden h-8 w-px bg-background/20 sm:block" />
 
-      <div className="flex items-center gap-1.5 sm:gap-2">
+      <div className="flex items-center gap-1 sm:gap-2">
         <IconButton
           onClick={props.onToggleChat}
           active={props.chatOpen}
@@ -179,7 +182,7 @@ export default function ControlBar(props: Props) {
         >
           <Users className="h-5 w-5" />
         </IconButton>
-        <IconButton onClick={props.onToggleInvite} title="Copy meeting link">
+        <IconButton onClick={props.onToggleInvite} accent title="Invite / share meeting code">
           <UserPlus className="h-5 w-5" />
         </IconButton>
         {props.isHost && (

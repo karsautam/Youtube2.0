@@ -163,7 +163,7 @@ export default function CallScreen({
   const hasWatch = Boolean(room.watch);
   const router = useRouter();
   return (
-    <div className="relative flex h-full bg-slate-950 text-white">
+    <div className="relative flex h-full flex-col bg-slate-950 text-white">
       <MeetingAudio
         participantStreams={room.participantStreams}
         selfSocketId={room.self?.socketId ?? null}
@@ -236,9 +236,9 @@ export default function CallScreen({
         </Button>
       </div>
 
-      <main className="relative flex flex-1 flex-col items-center overflow-hidden">
+      <main className="relative flex min-h-0 flex-1 flex-col items-center overflow-hidden">
         {hasWatch ? (
-          <div className="flex min-h-0 w-full flex-1 flex-col gap-3 p-4 pt-28 pb-40 sm:pt-4 sm:pb-24">
+          <div className="flex min-h-0 w-full flex-1 flex-col gap-3 p-3 pt-28 pb-2 sm:p-4 sm:pt-4 sm:pb-2">
             <div className="relative flex min-h-0 flex-1 items-center justify-center">
               <div className="w-full max-w-5xl">
                 <WatchPanel
@@ -271,7 +271,7 @@ export default function CallScreen({
         ) : (
           <div
             className={cn(
-              "grid w-full flex-1 gap-3 p-4 pt-28 pb-40 sm:pt-4 sm:pb-24",
+              "grid min-h-0 w-full flex-1 gap-3 p-3 pt-28 pb-2 sm:p-4 sm:pt-4 sm:pb-2",
               participants.length <= 1
                 ? "grid-cols-1 content-center auto-rows-fr"
                 : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 auto-rows-fr"
@@ -304,7 +304,7 @@ export default function CallScreen({
           </div>
         )}
 
-        <div className="absolute inset-x-0 bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-20 flex justify-center px-2 sm:bottom-3 sm:px-4">
+        <div className="relative z-20 flex w-full shrink-0 justify-center px-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1 sm:w-auto sm:px-4 sm:pb-3 sm:pt-2">
           <ControlBar
             micOn={room.media.micOn}
             camOn={room.media.camOn}
