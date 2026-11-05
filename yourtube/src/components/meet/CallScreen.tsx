@@ -163,7 +163,7 @@ export default function CallScreen({
   const hasWatch = Boolean(room.watch);
   const router = useRouter();
   return (
-    <div className="relative flex h-full flex-col bg-slate-950 text-white">
+    <div className="relative flex h-full bg-slate-950 text-white">
       <MeetingAudio
         participantStreams={room.participantStreams}
         selfSocketId={room.self?.socketId ?? null}
