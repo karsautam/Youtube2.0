@@ -18,4 +18,6 @@ const likeschema = mongoose.Schema(
   }
 );
 
+likeschema.index({ viewer: 1, videoid: 1 }, { unique: true });
+
 export default mongoose.model("like", likeschema);

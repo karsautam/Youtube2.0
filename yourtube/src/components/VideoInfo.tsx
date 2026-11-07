@@ -124,6 +124,24 @@ const VideoInfo = ({ video }: any) => {
   }, [video]);
 
   useEffect(() => {
+    if (!user?._id || !video?._id) return;
+    let cancelled = false;
+    axiosInstance
+      .get(`/like/status/${video._id}/${user._id}`)
+      .then((res) => {
+        if (cancelled) return;
+        setIsLiked(!!res.data?.liked);
+        setIsDisliked(!!res.data?.disliked);
+        if (typeof res.data?.likes === "number") setlikes(res.data.likes);
+        if (typeof res.data?.dislikes === "number") setDislikes(res.data.dislikes);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [user?._id, video?._id]);
+
+  useEffect(() => {
     if (!channelOwnerId) return;
     axiosInstance
       .get(`/channelfollow/count/${channelOwnerId}`)
@@ -184,19 +202,10 @@ const VideoInfo = ({ video }: any) => {
       const res = await axiosInstance.post(`/like/${video._id}`, {
         userId: user?._id,
       });
-      if (res.data.liked) {
-        if (isLiked) {
-          setlikes((prev: any) => prev - 1);
-          setIsLiked(false);
-        } else {
-          setlikes((prev: any) => prev + 1);
-          setIsLiked(true);
-          if (isDisliked) {
-            setDislikes((prev: any) => prev - 1);
-            setIsDisliked(false);
-          }
-        }
-      }
+      setIsLiked(!!res.data.liked);
+      setIsDisliked(!!res.data.disliked);
+      if (typeof res.data.likes === "number") setlikes(res.data.likes);
+      if (typeof res.data.dislikes === "number") setDislikes(res.data.dislikes);
     } catch (error) {
       console.log(error);
     }
@@ -227,22 +236,13 @@ const VideoInfo = ({ video }: any) => {
   const handleDislike = async () => {
     if (!user) return;
     try {
-      const res = await axiosInstance.post(`/like/${video._id}`, {
+      const res = await axiosInstance.post(`/like/dislike/${video._id}`, {
         userId: user?._id,
       });
-      if (!res.data.liked) {
-        if (isDisliked) {
-          setDislikes((prev: any) => prev - 1);
-          setIsDisliked(false);
-        } else {
-          setDislikes((prev: any) => prev + 1);
-          setIsDisliked(true);
-          if (isLiked) {
-            setlikes((prev: any) => prev - 1);
-            setIsLiked(false);
-          }
-        }
-      }
+      setIsLiked(!!res.data.liked);
+      setIsDisliked(!!res.data.disliked);
+      if (typeof res.data.likes === "number") setlikes(res.data.likes);
+      if (typeof res.data.dislikes === "number") setDislikes(res.data.dislikes);
     } catch (error) {
       console.log(error);
     }
