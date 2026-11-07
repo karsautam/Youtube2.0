@@ -4,18 +4,27 @@ import VideoInfo from "@/components/VideoInfo";
 import Videopplayer from "@/components/Videopplayer";
 import axiosInstance from "@/lib/axiosinstance";
 import BACKEND_URL from "@/lib/backendUrl";
+import { useUser } from "@/lib/AuthContext";
 import { PlayerSkeleton } from "@/components/ui/skeleton";
-import { notFound } from "next/navigation";
 import { useRouter } from "next/router";
-import React, { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import React, { useEffect, useState } from "react";
+import { Crown, Lock } from "lucide-react";
+
+const PLAN_RANK: Record<string, number> = { free: 0, bronze: 1, silver: 2, gold: 3 };
+const PLAN_LABEL: Record<string, string> = { free: "Free", bronze: "Bronze", silver: "Silver", gold: "Gold" };
 
 const index = () => {
   const router = useRouter();
   const { id } = router.query;
+  const { user } = useUser();
   const [videos, setvideo] = useState<any>(null);
   const [video, setvide] = useState<any>(null);
   const [loading, setloading] = useState(true);
   const [isTheater, setIsTheater] = useState(false);
+  const [viewerPlan, setViewerPlan] = useState<string>("free");
+  const [planLoading, setPlanLoading] = useState(true);
+
   useEffect(() => {
     const fetchvideo = async () => {
       if (!id || typeof id !== "string") return;
@@ -32,6 +41,32 @@ const index = () => {
     };
     fetchvideo();
   }, [id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const fetchPlan = async () => {
+      if (!user?._id) {
+        if (!cancelled) {
+          setViewerPlan("free");
+          setPlanLoading(false);
+        }
+        return;
+      }
+      setPlanLoading(true);
+      try {
+        const res = await axiosInstance.get(`/subscription/status/${user._id}`);
+        if (!cancelled) setViewerPlan(res.data?.plan || "free");
+      } catch {
+        if (!cancelled) setViewerPlan("free");
+      } finally {
+        if (!cancelled) setPlanLoading(false);
+      }
+    };
+    fetchPlan();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?._id]);
   // const relatedVideos = [
   //   {
   //     _id: "1",
@@ -71,10 +106,16 @@ const index = () => {
       </main>
     );
   }
-  
+
   if (!videos) {
     return <div>Video not found</div>;
   }
+
+  const requiredPlan = (videos.requiredPlan || "free").toLowerCase();
+  const requiredRank = PLAN_RANK[requiredPlan] ?? 0;
+  const viewerRank = PLAN_RANK[viewerPlan] ?? 0;
+  const isOwner = !!(user?._id && videos.uploader && String(user._id) === String(videos.uploader));
+  const isBlocked = !planLoading && requiredRank > viewerRank && !isOwner;
   const allVideos: any[] = Array.isArray(video) ? video : [];
   const currentIndex = allVideos.findIndex((vid: any) => vid._id === id);
   const nextVideo =
@@ -93,19 +134,50 @@ const index = () => {
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_420px]">
           <div className="min-w-0 space-y-4">
             <div className="sticky top-14 z-30 bg-background lg:static lg:top-auto lg:z-auto">
-              <Videopplayer
-                video={videos}
-                isTheater={isTheater}
-                onTheaterChange={setIsTheater}
-                nextVideo={nextVideo}
-                prevVideo={prevVideo}
-                onAutoplayNavigate={(vid) => router.push(`/watch/${vid}`)}
-                subtitles={(videos.subtitles || []).map((s: any) => ({
-                  src: `${BACKEND_URL}/${s.filepath}`,
-                  lang: s.lang || "en",
-                  label: s.label || s.lang || "Subtitles",
-                }))}
-              />
+              {planLoading ? (
+                <PlayerSkeleton />
+              ) : isBlocked ? (
+                <div className="relative aspect-video w-full overflow-hidden rounded-xl border bg-gradient-to-br from-zinc-900 via-zinc-900 to-zinc-800 text-white">
+                  <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
+                    <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-amber-500/15 text-amber-400">
+                      <Lock className="h-7 w-7" />
+                    </div>
+                    <h2 className="text-xl font-semibold">Members-only video</h2>
+                    <p className="mt-2 max-w-md text-sm text-zinc-300">
+                      This video requires a{" "}
+                      <span className="font-semibold text-amber-400">
+                        {PLAN_LABEL[requiredPlan] || requiredPlan}
+                      </span>{" "}
+                      plan or higher. Your current plan is{" "}
+                      <span className="font-semibold text-white">
+                        {PLAN_LABEL[viewerPlan] || viewerPlan}
+                      </span>
+                      .
+                    </p>
+                    <Link
+                      href="/subscription"
+                      className="mt-5 inline-flex items-center gap-2 rounded-full bg-amber-500 px-5 py-2.5 text-sm font-semibold text-black hover:bg-amber-400 transition"
+                    >
+                      <Crown className="h-4 w-4" />
+                      Upgrade to watch
+                    </Link>
+                  </div>
+                </div>
+              ) : (
+                <Videopplayer
+                  video={videos}
+                  isTheater={isTheater}
+                  onTheaterChange={setIsTheater}
+                  nextVideo={nextVideo}
+                  prevVideo={prevVideo}
+                  onAutoplayNavigate={(vid) => router.push(`/watch/${vid}`)}
+                  subtitles={(videos.subtitles || []).map((s: any) => ({
+                    src: `${BACKEND_URL}/${s.filepath}`,
+                    lang: s.lang || "en",
+                    label: s.label || s.lang || "Subtitles",
+                  }))}
+                />
+              )}
             </div>
             <VideoInfo video={videos} />
             <Comments videoId={id} />
