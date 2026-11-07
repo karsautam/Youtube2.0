@@ -146,28 +146,6 @@ export const login = async (req, res) => {
 
     const device = await buildDeviceInfo(req);
 
-    // Google has already verified the account owner, so don't gate the login on
-    // an email OTP: shared-domain transactional mail is frequently filed as
-    // spam, which was locking users out. Sign in immediately instead, but keep
-    // the single-device rule by revoking every other device (last login wins).
-    if (provider === "google.com" || provider === "google") {
-      await saveSession(existingUser._id, deviceId, device);
-      await usersession.updateMany(
-        {
-          user: existingUser._id,
-          deviceId: { $ne: deviceId },
-          revoked: { $ne: true },
-        },
-        { $set: { revoked: true } }
-      );
-      await users.updateOne(
-        { _id: existingUser._id },
-        { $set: { activeDeviceId: deviceId } }
-      );
-      existingUser.activeDeviceId = deviceId;
-      return res.status(200).json({ result: existingUser });
-    }
-
     // Is this device already trusted for this account? A revoked session (the
     // device was signed out or replaced) is not trusted.
     const known = await usersession.findOne({
