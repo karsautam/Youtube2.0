@@ -324,12 +324,18 @@ export const getallvideo = async (req, res) => {
 export const updatevideo = async (req, res) => {
   try {
     const { id } = req.params;
-    const { userId, videotitle } = req.body;
+    const { userId, videotitle, requiredPlan } = req.body;
     const vid = await video.findById(id);
     if (!vid) return res.status(404).json({ message: "Video not found" });
     if (String(vid.uploader) !== String(userId))
       return res.status(403).json({ message: "Not authorized" });
     if (videotitle !== undefined) vid.videotitle = videotitle;
+    if (requiredPlan !== undefined) {
+      if (!["free", "bronze", "silver", "gold"].includes(requiredPlan)) {
+        return res.status(400).json({ message: "Invalid membership plan" });
+      }
+      vid.requiredPlan = requiredPlan;
+    }
     await vid.save();
     return res.status(200).json(vid);
   } catch (error) {

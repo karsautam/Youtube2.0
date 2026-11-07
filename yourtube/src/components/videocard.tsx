@@ -8,7 +8,7 @@ import { registerVideo } from "@/lib/video-manager";
 import { cn } from "@/lib/utils";
 import { useMiniPlayer } from "@/lib/MiniPlayerContext";
 import { useRouter } from "next/router";
-import { Check, MoreHorizontal, Pencil, Trash2, X } from "lucide-react";
+import { Check, Crown, MoreHorizontal, Pencil, Trash2, X } from "lucide-react";
 import { useUser } from "@/lib/AuthContext";
 import axiosInstance from "@/lib/axiosinstance";
 import { toast } from "sonner";
@@ -40,6 +40,9 @@ export default function VideoCard({ video, manageable, onDeleted }: any) {
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleValue, setTitleValue] = useState(video?.videotitle || "");
   const [titleSaving, setTitleSaving] = useState(false);
+  const [editingPlan, setEditingPlan] = useState(false);
+  const [planValue, setPlanValue] = useState(video?.requiredPlan || "free");
+  const [planSaving, setPlanSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -68,6 +71,29 @@ export default function VideoCard({ video, manageable, onDeleted }: any) {
       setTitleValue(video?.videotitle);
     } finally {
       setTitleSaving(false);
+    }
+  };
+
+  const handleSavePlan = async (nextPlan: string) => {
+    if (nextPlan === (video?.requiredPlan || "free")) {
+      setEditingPlan(false);
+      return;
+    }
+    setPlanSaving(true);
+    try {
+      await axiosInstance.patch(`/video/update/${video._id}`, {
+        userId: user._id,
+        requiredPlan: nextPlan,
+      });
+      toast.success(`Membership set to ${nextPlan.charAt(0).toUpperCase() + nextPlan.slice(1)}`);
+      setPlanValue(nextPlan);
+      setEditingPlan(false);
+      video.requiredPlan = nextPlan;
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Failed to update membership");
+      setPlanValue(video?.requiredPlan || "free");
+    } finally {
+      setPlanSaving(false);
     }
   };
 
@@ -214,7 +240,7 @@ export default function VideoCard({ video, manageable, onDeleted }: any) {
             </button>
             {menuOpen && (
               <div
-                className="absolute right-0 top-10 z-10 w-48 rounded-lg border bg-background p-1 shadow-lg"
+                className="absolute right-0 top-10 z-10 w-52 rounded-lg border bg-background p-1 shadow-lg"
                 onClick={(e) => e.stopPropagation()}
               >
                 <button
@@ -228,6 +254,18 @@ export default function VideoCard({ video, manageable, onDeleted }: any) {
                 >
                   <Pencil className="h-4 w-4 text-muted-foreground" />
                   Edit title
+                </button>
+                <button
+                  type="button"
+                  className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm font-medium transition-colors hover:bg-accent active:bg-accent"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setPlanValue(video?.requiredPlan || "free");
+                    setEditingPlan(true);
+                  }}
+                >
+                  <Crown className="h-4 w-4 text-amber-500" />
+                  Change membership
                 </button>
                 <button
                   type="button"
@@ -295,6 +333,37 @@ export default function VideoCard({ video, manageable, onDeleted }: any) {
                   className="shrink-0 rounded-full p-1.5 text-red-500 hover:bg-accent"
                 >
                   <X className="h-4 w-4" />
+                </button>
+              </div>
+            ) : editingPlan ? (
+              <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
+                <p className="text-xs font-medium text-muted-foreground">Membership required</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {["free", "bronze", "silver", "gold"].map((plan) => (
+                    <button
+                      key={plan}
+                      type="button"
+                      disabled={planSaving}
+                      onClick={() => handleSavePlan(plan)}
+                      className={`rounded-full border px-2.5 py-1 text-xs font-medium capitalize transition ${
+                        (video?.requiredPlan || "free") === plan
+                          ? "border-amber-500 bg-amber-500 text-white"
+                          : "border-border hover:border-amber-400"
+                      } ${planSaving ? "opacity-60" : ""}`}
+                    >
+                      {plan}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPlanValue(video?.requiredPlan || "free");
+                    setEditingPlan(false);
+                  }}
+                  className="text-xs text-muted-foreground hover:text-foreground"
+                >
+                  Cancel
                 </button>
               </div>
             ) : (
